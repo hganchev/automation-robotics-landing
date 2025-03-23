@@ -139,12 +139,12 @@ export const animateRoboticArm = (arm: THREE.Group, time: number) => {
   
   // Move the upper arm and gripper
   if (arm.children[2]) {
-    arm.children[2].rotation.x = Math.sin(time * 0.3) * 0.1 - 0.2;
+    arm.children[2].rotation.x = Math.sin(time * 0.3) * 0.1 - 0.4;
   }
   
   // Move the gripper
   if (arm.children[3]) {
-    arm.children[3].position.y = 4 + Math.sin(time) * 0.1;
+    arm.children[3].position.y = 8 + Math.sin(time) * 0.1;
   }
 };
 
@@ -207,7 +207,7 @@ export const createUniversalRobot = () => {
   const jointMaterial = new THREE.MeshStandardMaterial({
     color: jointColor,
     metalness: 0.9,
-    roughness: 0.05
+    roughness: 0.05,
   });
   
   const baseMaterial = new THREE.MeshStandardMaterial({
@@ -426,9 +426,9 @@ export const createUniversalRobot = () => {
   joint1Group.rotation.y = Math.PI / 6; // Slight rotation at base
   joint2Group.rotation.x = -Math.PI / 6; // Shoulder up slightly
   joint3Group.rotation.x = Math.PI / 3; // Elbow bent naturally
-  joint4Group.rotation.z = Math.PI / 4; // Wrist roll
+  joint4Group.rotation.z = Math.PI / 6; // Wrist roll
   joint5Group.rotation.x = -Math.PI / 6; // Wrist pitch
-  joint6Group.rotation.z = 0; // Neutral end effector
+  joint6Group.rotation.z = -90; // Neutral end effector
   
   return robotGroup;
 };
