@@ -116,7 +116,8 @@ export const createRoboticArm = () => {
   // Forearm - now cylindrical
   const forearmGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 32);
   const forearm = new THREE.Mesh(forearmGeometry, mainMaterial);
-  forearm.position.y = 1;
+  forearm.position.y = -1;
+  forearm.rotateOnAxis(new THREE.Vector3(0, 0, 1), Math.PI); // Rotate to align with elbow
   forearm.castShadow = true;
   elbowJoint.add(forearm);
 
@@ -195,33 +196,66 @@ export const animateRoboticArm = (robot: THREE.Group, time: number) => {
     rightFingerGroup
   } = robot.userData;
 
-  // Define the pick and place cycle (4 seconds total)
-  const cycleTime = (time % 4) / 4; // Normalize to 0-1 range
+  // Define the pick and place cycle (6 seconds total for smoother motion)
+  const cycleTime = (time % 6) / 6; // Normalize to 0-1 range
   
   // Define key positions and states
-  if (cycleTime < 0.25) {
-    // Moving to pickup position (down and forward)
-    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0, 0.5, cycleTime * 4);
-    elbowJoint.rotation.z = THREE.MathUtils.lerp(0, -0.8, cycleTime * 4);
-    wristJoint.rotation.z = THREE.MathUtils.lerp(0, 0.3, cycleTime * 4);
+  if (cycleTime < 0.2) {
+    // Moving to pickup position (reaching forward and down)
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0, 1.2, cycleTime * 5); // More rotation for reaching down
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(0, -1.5, cycleTime * 5); // Deeper reach
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0, 0.3, cycleTime * 5); // Maintain gripper orientation
+    platform.rotation.y = THREE.MathUtils.lerp(0, -0.8, cycleTime * 5); // Rotate base to side position
     
     // Open gripper
     leftFingerGroup.rotation.z = -0.5;
     rightFingerGroup.rotation.z = 0.5;
   } 
-  else if (cycleTime < 0.5) {
+  else if (cycleTime < 0.3) {
     // Gripping (close fingers)
-    const gripProgress = (cycleTime - 0.25) * 4;
+    const gripProgress = (cycleTime - 0.2) * 10;
     leftFingerGroup.rotation.z = THREE.MathUtils.lerp(-0.5, 0, gripProgress);
     rightFingerGroup.rotation.z = THREE.MathUtils.lerp(0.5, 0, gripProgress);
+    
+    // Keep arm in pickup position
+    shoulderJoint.rotation.z = 1.2;
+    elbowJoint.rotation.z = -1.5;
+    wristJoint.rotation.z = 0.3;
+    platform.rotation.y = -0.8;
   }
-  else if (cycleTime < 0.75) {
-    // Moving to place position (up and right)
-    const moveProgress = (cycleTime - 0.5) * 4;
-    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0.5, 0.3, moveProgress);
-    elbowJoint.rotation.z = THREE.MathUtils.lerp(-0.8, -0.4, moveProgress);
-    wristJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0.1, moveProgress);
-    platform.rotation.y = THREE.MathUtils.lerp(0, 0.7, moveProgress);
+  else if (cycleTime < 0.5) {
+    // Lifting up while maintaining position
+    const liftProgress = (cycleTime - 0.3) * 5;
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(1.2, 0.3, liftProgress);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(-1.5, -0.4, liftProgress);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0.1, liftProgress);
+    platform.rotation.y = -0.8; // Maintain base rotation during lift
+    
+    // Keep gripper closed
+    leftFingerGroup.rotation.z = 0;
+    rightFingerGroup.rotation.z = 0;
+  }
+  else if (cycleTime < 0.7) {
+    // Rotate base to other side while keeping arm up
+    const rotateProgress = (cycleTime - 0.5) * 5;
+    platform.rotation.y = THREE.MathUtils.lerp(-0.8, 0.8, rotateProgress);
+    
+    // Keep arm in raised position
+    shoulderJoint.rotation.z = 0.3;
+    elbowJoint.rotation.z = -0.4;
+    wristJoint.rotation.z = 0.1;
+    
+    // Keep gripper closed
+    leftFingerGroup.rotation.z = 0;
+    rightFingerGroup.rotation.z = 0;
+  }
+  else if (cycleTime < 0.85) {
+    // Going down to place position
+    const placeProgress = (cycleTime - 0.7) * 6.67;
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0.3, 1.0, placeProgress);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(-0.4, -1.3, placeProgress);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0.1, 0.3, placeProgress);
+    platform.rotation.y = 0.8; // Keep base rotated to place position
     
     // Keep gripper closed
     leftFingerGroup.rotation.z = 0;
@@ -229,20 +263,19 @@ export const animateRoboticArm = (robot: THREE.Group, time: number) => {
   }
   else {
     // Release and return to center
-    const returnProgress = (cycleTime - 0.75) * 4;
-    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0, returnProgress);
-    elbowJoint.rotation.z = THREE.MathUtils.lerp(-0.4, 0, returnProgress);
-    wristJoint.rotation.z = THREE.MathUtils.lerp(0.1, 0, returnProgress);
-    platform.rotation.y = THREE.MathUtils.lerp(0.7, 0, returnProgress);
+    const returnProgress = (cycleTime - 0.85) * 6.67;
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(1.0, 0, returnProgress);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(-1.3, 0, returnProgress);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0, returnProgress);
+    platform.rotation.y = THREE.MathUtils.lerp(0.8, 0, returnProgress);
     
     // Open gripper
     leftFingerGroup.rotation.z = THREE.MathUtils.lerp(0, -0.5, returnProgress);
     rightFingerGroup.rotation.z = THREE.MathUtils.lerp(0, 0.5, returnProgress);
   }
 
-  // Add slight wobble to the entire robot
-  robot.position.y = Math.sin(time * 0.8) * 0.05;
-  robot.rotation.z = Math.sin(time * 0.3) * 0.02;
+  // Add very subtle wobble to the entire robot
+  robot.position.y = Math.sin(time * 0.8) * 0.01; // Further reduced wobble amplitude
 };
 
 // Function to create a factory floor
