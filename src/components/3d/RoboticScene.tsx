@@ -14,7 +14,7 @@ const Scene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize Three.js scene with custom hook
-  const { sceneReady } = useThreeScene({
+  useThreeScene({
     containerRef,
     mouseMove: true,
     scrollAnimation: true

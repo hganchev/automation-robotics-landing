@@ -42,7 +42,7 @@ export const useThreeScene = ({
       containerRef.current.clientWidth,
       containerRef.current.clientHeight
     );
-  }, []);
+  }, [containerRef]);
 
   const handleMouseMove = (event: MouseEvent) => {
     if (!cameraRef.current || !robotRef.current || !containerRef.current) return;
@@ -188,6 +188,22 @@ export const useThreeScene = ({
     };
   }, [containerRef, mouseMove, scrollAnimation, handleResize]);
   
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleMove = (event: MouseEvent) => {
+      handleMouseMove(event);
+    };
+
+    container.addEventListener('mousemove', handleMove);
+    return () => {
+      if (container) {
+        container.removeEventListener('mousemove', handleMove);
+      }
+    };
+  }, [handleMouseMove, containerRef]);
+
   return {
     scene: sceneRef.current,
     camera: cameraRef.current,
