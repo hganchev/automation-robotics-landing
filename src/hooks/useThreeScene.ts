@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { 
   createScene, 
   createCamera, 
   createRenderer,
-  createRoboticArm,
+  createUniversalRobot,
   createFactoryFloor,
-  animateRoboticArm
+  animateUniversalRobot
 } from '../lib/utils/threeUtils';
 
-// Updated interface to accept the React.RefObject<HTMLDivElement | null>
 interface UseThreeSceneProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   mouseMove?: boolean;
@@ -25,146 +26,137 @@ export const useThreeScene = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const roboticArmRef = useRef<THREE.Group | null>(null);
+  const robotRef = useRef<THREE.Group | null>(null);
   const factoryFloorRef = useRef<THREE.Group | null>(null);
   const frameIdRef = useRef<number | null>(null);
   
-  // State to hold scene objects for external access
   const [sceneReady, setSceneReady] = useState(false);
   
-  // Handle mouse movement effect
-  const handleMouseMove = (event: MouseEvent) => {
-    if (!cameraRef.current || !roboticArmRef.current || !containerRef.current) return;
+  const handleResize = useCallback(() => {
+    if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
     
-    // Calculate mouse position relative to container
+    cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+    cameraRef.current.updateProjectionMatrix();
+    
+    rendererRef.current.setSize(
+      containerRef.current.clientWidth,
+      containerRef.current.clientHeight
+    );
+  }, []);
+
+  const handleMouseMove = (event: MouseEvent) => {
+    if (!cameraRef.current || !robotRef.current || !containerRef.current) return;
+    
     const rect = containerRef.current.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / containerRef.current.offsetWidth) * 2 - 1;
     const y = -((event.clientY - rect.top) / containerRef.current.offsetHeight) * 2 + 1;
     
-    // Subtly move the camera based on mouse position
     gsap.to(cameraRef.current.position, {
       x: x * 0.5,
       y: y * 0.2,
       duration: 1,
       ease: 'power2.out'
     });
-    
-    // Slightly rotate the robotic arm based on mouse position
-    if (roboticArmRef.current) {
-      gsap.to(roboticArmRef.current.rotation, {
-        y: x * 0.2,
-        duration: 1,
-        ease: 'power2.out'
-      });
-    }
   };
-  
-  // Handle scroll effect
+
   const handleScroll = () => {
-    if (!roboticArmRef.current || !factoryFloorRef.current) return;
+    if (!robotRef.current || !factoryFloorRef.current || !cameraRef.current) return;
     
-    // Calculate scroll progress (0 to 1)
     const scrollProgress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
     
-    // Apply lighting changes based on scroll position
+    gsap.to(cameraRef.current.position, {
+      y: 4 + scrollProgress * 2,
+      duration: 0.5
+    });
+    
     if (sceneRef.current) {
-      // Adjust lighting intensity based on scroll
       sceneRef.current.children.forEach(child => {
         if (child instanceof THREE.Light) {
           gsap.to(child, {
-            intensity: 1 + scrollProgress * 2,
+            intensity: 1 + scrollProgress,
             duration: 0.5
           });
         }
       });
     }
     
-    // Rotate factory floor based on scroll
     gsap.to(factoryFloorRef.current.rotation, {
-      x: scrollProgress * 0.2,
+      x: scrollProgress * 0.1,
       duration: 0.5
     });
   };
   
-  // Initialize the scene
   useEffect(() => {
-    if (!containerRef.current) return;
+    // Ensure we're in the browser environment
+    if (typeof window === 'undefined' || !containerRef.current) return;
     
-    // Get container dimensions
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
+    let mounted = true;
     
-    // Create scene, camera, and renderer
-    const scene = createScene();
-    const camera = createCamera(width, height);
-    const renderer = createRenderer(width, height);
-    
-    // Create objects
-    const roboticArm = createRoboticArm();
-    const factoryFloor = createFactoryFloor();
-    
-    // Add objects to scene
-    scene.add(roboticArm);
-    scene.add(factoryFloor);
-    
-    // Store refs
-    sceneRef.current = scene;
-    cameraRef.current = camera;
-    rendererRef.current = renderer;
-    roboticArmRef.current = roboticArm;
-    factoryFloorRef.current = factoryFloor;
-    
-    // Add renderer to DOM
-    containerRef.current.appendChild(renderer.domElement);
-    
-    // Handle window resize
-    const handleResize = () => {
-      if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+    const initScene = () => {
+      if (!containerRef.current || !mounted) return;
       
-      // Update camera
-      cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-      cameraRef.current.updateProjectionMatrix();
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
       
-      // Update renderer
-      rendererRef.current.setSize(
-        containerRef.current.clientWidth,
-        containerRef.current.clientHeight
-      );
-    };
-    
-    // Animation loop
-    const animate = (time: number) => {
-      if (!sceneRef.current || !cameraRef.current || !rendererRef.current || !roboticArmRef.current) return;
+      const scene = createScene();
+      const camera = createCamera(width, height);
+      const renderer = createRenderer(width, height);
       
-      // Animate the robotic arm
-      animateRoboticArm(roboticArmRef.current, time * 0.001);
+      const robot = createUniversalRobot();
+      const factoryFloor = createFactoryFloor();
       
-      // Render scene
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      scene.add(robot);
+      scene.add(factoryFloor);
       
-      // Continue animation loop
+      camera.position.set(8, 4, 8);
+      camera.lookAt(new THREE.Vector3(3, 0, 0));
+      
+      sceneRef.current = scene;
+      cameraRef.current = camera;
+      rendererRef.current = renderer;
+      robotRef.current = robot;
+      factoryFloorRef.current = factoryFloor;
+      
+      containerRef.current.appendChild(renderer.domElement);
+      
+      const animate = (time: number) => {
+        if (!mounted || !sceneRef.current || !cameraRef.current || !rendererRef.current || !robotRef.current) return;
+        
+        animateUniversalRobot(robotRef.current, time * 0.001);
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+        frameIdRef.current = requestAnimationFrame(animate);
+      };
+      
       frameIdRef.current = requestAnimationFrame(animate);
+      
+      if (mouseMove) {
+        window.addEventListener('mousemove', handleMouseMove);
+      }
+      
+      if (scrollAnimation) {
+        window.addEventListener('scroll', handleScroll);
+      }
+      
+      window.addEventListener('resize', handleResize);
+      
+      const pointLight = new THREE.PointLight(0xffffff, 1);
+      pointLight.position.set(5, 5, 5);
+      scene.add(pointLight);
+      
+      const ambientLight = new THREE.AmbientLight(0x404040, 2);
+      scene.add(ambientLight);
+      
+      if (mounted) {
+        setSceneReady(true);
+      }
     };
+
+    // Small delay to ensure DOM is ready
+    setTimeout(initScene, 0);
     
-    // Start animation loop
-    frameIdRef.current = requestAnimationFrame(animate);
-    
-    // Add event listeners
-    if (mouseMove) {
-      window.addEventListener('mousemove', handleMouseMove);
-    }
-    
-    if (scrollAnimation) {
-      window.addEventListener('scroll', handleScroll);
-    }
-    
-    window.addEventListener('resize', handleResize);
-    
-    // Mark scene as ready
-    setSceneReady(true);
-    
-    // Cleanup
     return () => {
+      mounted = false;
+      
       if (containerRef.current && rendererRef.current) {
         containerRef.current.removeChild(rendererRef.current.domElement);
       }
@@ -183,13 +175,13 @@ export const useThreeScene = ({
       
       window.removeEventListener('resize', handleResize);
     };
-  }, [containerRef, mouseMove, scrollAnimation]);
+  }, [containerRef, mouseMove, scrollAnimation, handleResize]);
   
   return {
     scene: sceneRef.current,
     camera: cameraRef.current,
     renderer: rendererRef.current,
-    roboticArm: roboticArmRef.current,
+    roboticArm: robotRef.current,
     factoryFloor: factoryFloorRef.current,
     sceneReady
   };

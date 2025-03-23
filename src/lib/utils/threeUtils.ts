@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 
 // Helper function to set up a basic Three.js scene
 export const createScene = () => {
