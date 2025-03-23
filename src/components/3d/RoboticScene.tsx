@@ -24,18 +24,22 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
 
   return (
     <div 
-      className={`relative overflow-hidden ${className}`}
+      className={`relative w-full h-screen ${className}`}
       style={{ height }}
     >
       {/* Three.js scene container */}
       <div 
         ref={containerRef} 
-        className="w-full h-full bg-gradient-to-b from-gray-900 to-black"
+        className="absolute inset-0 w-full h-full"
+        style={{ 
+          zIndex: 0,
+          background: 'transparent'
+        }}
         suppressHydrationWarning
       />
       
       {/* Main headline */}
-      <div className="absolute top-1/3 left-10 transform -translate-y-1/2 z-10 max-w-xl">
+      <div className="absolute top-1/3 left-10 transform -translate-y-1/2 z-20 max-w-xl">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
           Next-Gen <span className="text-blue-400">Automation</span> & <span className="text-blue-400">Robotics</span>
         </h1>
@@ -48,7 +52,7 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
       </div>
       
       {/* Universal Robot Label */}
-      <div className="absolute bottom-10 right-10 z-10 bg-black/50 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30">
+      <div className="absolute bottom-10 right-10 z-20 bg-black/50 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30">
         <div className="text-blue-400 font-mono text-sm">Universal Robot UR10e</div>
         <div className="text-xs text-gray-400">6-axis industrial automation</div>
       </div>

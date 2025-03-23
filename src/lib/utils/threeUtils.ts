@@ -5,14 +5,20 @@ import { gsap } from 'gsap';
 export const createScene = () => {
   const scene = new THREE.Scene();
   
-  // Add ambient light
-  const ambientLight = new THREE.AmbientLight(0x404040, 2);
+  // Increase ambient light intensity
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
   scene.add(ambientLight);
   
-  // Add directional light
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1, 1, 1).normalize();
-  scene.add(directionalLight);
+  // Adjust main directional light
+  const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  mainLight.position.set(5, 8, 5);
+  mainLight.castShadow = true;
+  scene.add(mainLight);
+  
+  // Add fill light from opposite side with increased intensity
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  fillLight.position.set(-5, 3, -5);
+  scene.add(fillLight);
   
   return scene;
 };
@@ -20,14 +26,15 @@ export const createScene = () => {
 // Helper function to set up a basic camera
 export const createCamera = (width: number, height: number) => {
   const camera = new THREE.PerspectiveCamera(
-    75, // Field of view
+    60, // Reduced FOV for better perspective
     width / height, // Aspect ratio
     0.1, // Near clipping plane
     1000 // Far clipping plane
   );
   
-  // Position the camera
-  camera.position.z = 5;
+  // Position the camera more centrally
+  camera.position.set(0, 2, 8);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
   
   return camera;
 };
@@ -462,7 +469,7 @@ export const createUniversalRobot = () => {
   
   // Initial position and rotation
   robotGroup.position.y = -1.5;
-  robotGroup.position.x = 3.5;
+  robotGroup.position.x = 0; // Changed from 3.5 to 0 to center the robot
   robotGroup.rotation.y = -Math.PI / 5;
   
   return robotGroup;

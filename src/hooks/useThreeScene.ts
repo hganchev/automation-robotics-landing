@@ -108,8 +108,26 @@ export const useThreeScene = ({
       scene.add(robot);
       scene.add(factoryFloor);
       
-      camera.position.set(8, 4, 8);
-      camera.lookAt(new THREE.Vector3(3, 0, 0));
+      // Position robot slightly lower and towards center
+      robot.position.y = -1;
+      
+      // Enhanced lighting setup
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      mainLight.position.set(5, 5, 5);
+      mainLight.castShadow = true;
+      scene.add(mainLight);
+      
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      fillLight.position.set(-5, 3, -5);
+      scene.add(fillLight);
+      
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      // Set renderer parameters for better visuals
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       
       sceneRef.current = scene;
       cameraRef.current = camera;
@@ -138,13 +156,6 @@ export const useThreeScene = ({
       }
       
       window.addEventListener('resize', handleResize);
-      
-      const pointLight = new THREE.PointLight(0xffffff, 1);
-      pointLight.position.set(5, 5, 5);
-      scene.add(pointLight);
-      
-      const ambientLight = new THREE.AmbientLight(0x404040, 2);
-      scene.add(ambientLight);
       
       if (mounted) {
         setSceneReady(true);
