@@ -223,20 +223,26 @@ function createRobotSegments() {
   // Create arm segments with joints
   const armMaterial = new THREE.MeshStandardMaterial({ color: 0x4287f5 });
   
-  // Add segments and connect them hierarchically
+  // Add segments and connect them hierarchically with explicit rotation initialization
   const segment1 = createArmSegment(0.4, 0.2, 1, armMaterial);
   segment1.position.y = 0.5;
-  
+  segment1.rotation.set(0, 0, 0); // Initialize rotation
+
   const segment2 = createArmSegment(0.3, 0.15, 0.8, armMaterial);
   segment2.position.y = 1;
+  segment2.rotation.set(0, 0, 0); // Initialize rotation
   
   const segment3 = createArmSegment(0.2, 0.1, 0.6, armMaterial);
   segment3.position.y = 0.8;
+  segment3.rotation.set(0, 0, 0); // Initialize rotation
   
   // Add segments to group
   segmentsGroup.add(segment1);
   segment1.add(segment2);
   segment2.add(segment3);
+  
+  // Initialize group rotation
+  segmentsGroup.rotation.set(0, 0, 0);
   
   return segmentsGroup;
 }
@@ -264,7 +270,7 @@ function createArmSegment(radius: number, jointRadius: number, height: number, m
 
 // Simple inverse kinematics solver for the 6-axis robot
 const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotation: THREE.Euler) => {
-  if (!robot || !robot.userData) return;
+  if (!robot?.userData) return;
   
   const {
     joint1Group,
@@ -275,17 +281,21 @@ const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotati
     joint6Group,
     jointAngles
   } = robot.userData;
+
+  // Early return if required joints are missing
+  if (!joint1Group || !joint2Group || !joint3Group) return;
   
   // Convert target position to robot's local space
   const localTarget = targetPosition.clone();
-  // Fix: Use updateWorldMatrix and create a proper world inverse matrix
   robot.updateWorldMatrix(true, false);
   const worldInverse = new THREE.Matrix4().copy(robot.matrixWorld).invert();
   localTarget.applyMatrix4(worldInverse);
   
   // Base rotation (joint 1) - rotate to face target
   jointAngles.joint1 = Math.atan2(localTarget.x, localTarget.z);
-  joint1Group.rotation.y = jointAngles.joint1;
+  if (joint1Group.rotation) {
+    joint1Group.rotation.y = jointAngles.joint1;
+  }
   
   // Get distance to target (in xz plane)
   const distance = Math.sqrt(
@@ -294,14 +304,12 @@ const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotati
   );
   
   // Calculate the height difference
-  const heightDiff = localTarget.y - joint2Group.position.y;
+  const heightDiff = localTarget.y - (joint2Group.position?.y || 0);
   
-  // Use geometry to determine shoulder and elbow angles (simple 2-joint IK)
-  // For the Universal Robot, we have these approximate lengths:
-  const upperArmLength = 2.4; // Length of upper arm
-  const forearmLength = 2.2;  // Length of forearm
+  // Use geometry to determine shoulder and elbow angles
+  const upperArmLength = 2.4;
+  const forearmLength = 2.2;
   
-  // Use law of cosines to compute joint angles
   const upperArmSq = Math.pow(upperArmLength, 2);
   const forearmSq = Math.pow(forearmLength, 2);
   const distanceSq = Math.pow(distance, 2) + Math.pow(heightDiff, 2);
@@ -322,12 +330,16 @@ const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotati
   jointAngles.joint2 = shoulderAngle;
   jointAngles.joint3 = elbowAngle;
   
-  // Apply the angles
-  joint2Group.rotation.z = shoulderAngle;
-  joint3Group.rotation.z = elbowAngle - Math.PI/2; // Adjust by 90° due to initial orientation
+  if (joint2Group.rotation) {
+    joint2Group.rotation.z = shoulderAngle;
+  }
   
-  // For simplicity, we'll just use the target rotation directly for the wrist joints
-  if (targetRotation) {
+  if (joint3Group.rotation) {
+    joint3Group.rotation.z = elbowAngle - Math.PI/2; // Adjust by 90° due to initial orientation
+  }
+  
+  // Apply wrist rotations if available
+  if (targetRotation && joint4Group?.rotation && joint5Group?.rotation && joint6Group?.rotation) {
     jointAngles.joint4 = targetRotation.z;
     jointAngles.joint5 = targetRotation.y;
     jointAngles.joint6 = targetRotation.x;
@@ -340,76 +352,84 @@ const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotati
 
 // Function to animate the 6-axis Universal Robot with inverse kinematics
 export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
-  if (!robot || !robot.userData) return;
+  if (!robot?.userData?.joint1Group) return;
   
-  // Define target positions for a pick-and-place routine
-  const cycle = Math.floor(time * 0.25) % 4;
-  const cycleTime = (time * 0.25) % 1;
-  const smoothCycleTime = smoothStep(cycleTime);
-  
-  let targetX, targetY, targetZ;
-  let grip = false;
-  
-  // Pick and place motion sequence
-  switch(cycle) {
-    case 0:
-      targetX = 4 + Math.sin(time * 0.1) * 0.3;
-      targetY = -1 - smoothCycleTime * 1.5;
-      targetZ = 1 + Math.cos(time * 0.1) * 0.3;
-      grip = false;
-      break;
-    case 1:
-      targetX = 4 + Math.sin(time * 0.1) * 0.3;
-      targetY = -2.5 + smoothCycleTime * 2;
-      targetZ = 1 + Math.cos(time * 0.1) * 0.3;
-      grip = true;
-      break;
-    case 2:
-      targetX = 4 + Math.sin(time * 0.1) * 0.3 - smoothCycleTime * 2;
-      targetY = -0.5;
-      targetZ = 1 + Math.cos(time * 0.1) * 0.3 - smoothCycleTime * 1;
-      grip = true;
-      break;
-    case 3:
-      targetX = 2 + Math.sin(time * 0.1) * 0.3;
-      targetY = -0.5 - smoothCycleTime * 0.5;
-      targetZ = 0 + Math.cos(time * 0.1) * 0.3;
-      grip = cycleTime < 0.3;
-      break;
-  }
-  
-  // Apply IK to move robot to target position
-  const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
-  
-  // Calculate orientation for the end effector
-  const targetRotation = new THREE.Euler(
-    0,
-    Math.sin(time * 0.3) * 0.2,
-    Math.sin(time * 0.5) * 0.3
-  );
-  
-  // Solve IK to position the robot
-  solveIK(robot, targetPosition, targetRotation);
-  
-  // Animate gripper fingers if they exist
-  if (robot.userData.leftFingers && robot.userData.rightFingers) {
-    const gripperWidth = grip ? 0.08 : 0.15;
+  try {
+    // Define target positions for a pick-and-place routine
+    const cycle = Math.floor(time * 0.25) % 4;
+    const cycleTime = (time * 0.25) % 1;
+    const smoothCycleTime = smoothStep(cycleTime);
     
-    robot.userData.leftFingers.forEach((finger: THREE.Mesh) => {
-      gsap.to(finger.position, {
-        x: -gripperWidth,
-        duration: 0.2,
-        overwrite: true
-      });
-    });
+    let targetX = 0, targetY = 0, targetZ = 0;
+    let grip = false;
     
-    robot.userData.rightFingers.forEach((finger: THREE.Mesh) => {
-      gsap.to(finger.position, {
-        x: gripperWidth,
-        duration: 0.2,
-        overwrite: true
+    // Pick and place motion sequence
+    switch(cycle) {
+      case 0:
+        targetX = 2 + Math.sin(time * 0.1) * 0.3;
+        targetY = -1 - smoothCycleTime * 1.5;
+        targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+        grip = false;
+        break;
+      case 1:
+        targetX = 2 + Math.sin(time * 0.1) * 0.3;
+        targetY = -2.5 + smoothCycleTime * 2;
+        targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+        grip = true;
+        break;
+      case 2:
+        targetX = 2 + Math.sin(time * 0.1) * 0.3 - smoothCycleTime * 2;
+        targetY = -0.5;
+        targetZ = 1 + Math.cos(time * 0.1) * 0.3 - smoothCycleTime * 1;
+        grip = true;
+        break;
+      case 3:
+        targetX = 0 + Math.sin(time * 0.1) * 0.3;
+        targetY = -0.5 - smoothCycleTime * 0.5;
+        targetZ = 0 + Math.cos(time * 0.1) * 0.3;
+        grip = cycleTime < 0.3;
+        break;
+    }
+    
+    // Apply IK to move robot to target position
+    const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
+    
+    // Calculate orientation for the end effector with smaller rotation ranges
+    const targetRotation = new THREE.Euler(
+      0,
+      Math.sin(time * 0.3) * 0.1, // Reduced from 0.2
+      Math.sin(time * 0.5) * 0.15  // Reduced from 0.3
+    );
+    
+    // Solve IK to position the robot
+    solveIK(robot, targetPosition, targetRotation);
+    
+    // Animate gripper fingers if they exist
+    if (robot.userData.leftFingers?.length && robot.userData.rightFingers?.length) {
+      const gripperWidth = grip ? 0.08 : 0.15;
+      
+      robot.userData.leftFingers.forEach((finger: THREE.Mesh) => {
+        if (finger?.position) {
+          gsap.to(finger.position, {
+            x: -gripperWidth,
+            duration: 0.2,
+            overwrite: true
+          });
+        }
       });
-    });
+      
+      robot.userData.rightFingers.forEach((finger: THREE.Mesh) => {
+        if (finger?.position) {
+          gsap.to(finger.position, {
+            x: gripperWidth,
+            duration: 0.2,
+            overwrite: true
+          });
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error in animateUniversalRobot:', error);
   }
 };
 

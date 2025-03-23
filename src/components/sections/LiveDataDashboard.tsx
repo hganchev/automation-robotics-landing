@@ -24,30 +24,76 @@ const LiveDataDashboard: React.FC = () => {
   
   // Handle client-side initialization
   useEffect(() => {
-    setIsClient(true);
-    setCurrentTime(new Date().toLocaleTimeString());
+    // Set initial time with static value to prevent hydration mismatch
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    setCurrentTime(`${hours}:${minutes}:${seconds}`);
+    
+    // Small delay before setting client state to prevent flicker
+    const timer = setTimeout(() => {
+      setIsClient(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  // Update time every second
+  // Update time every second with RAF for smoother updates
   useEffect(() => {
     if (!isClient) return;
     
-    const timeInterval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
+    let frameId: number;
+    let lastUpdate = 0;
     
-    return () => clearInterval(timeInterval);
+    const updateTime = (timestamp: number) => {
+      // Update only if a second has passed
+      if (timestamp - lastUpdate >= 1000) {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        setCurrentTime(`${hours}:${minutes}:${seconds}`);
+        lastUpdate = timestamp;
+      }
+      frameId = requestAnimationFrame(updateTime);
+    };
+    
+    frameId = requestAnimationFrame(updateTime);
+    return () => cancelAnimationFrame(frameId);
   }, [isClient]);
   
-  // Simulate live data updates
+  // Simulate live data updates with smoother transitions
   useEffect(() => {
     if (!isClient) return;
 
-    const interval = setInterval(() => {
-      setSensorData(generateMockData());
-    }, 3000);
+    let frameId: number;
+    let lastUpdate = 0;
     
-    return () => clearInterval(interval);
+    const updateData = (timestamp: number) => {
+      // Update every 3 seconds
+      if (timestamp - lastUpdate >= 3000) {
+        setSensorData(prevData => {
+          const newData = generateMockData();
+          // Smooth out changes by averaging with previous values
+          return {
+            temperature: (prevData.temperature + newData.temperature) / 2,
+            humidity: (prevData.humidity + newData.humidity) / 2,
+            pressure: (prevData.pressure + newData.pressure) / 2,
+            vibration: (prevData.vibration + newData.vibration) / 2,
+            energy: (prevData.energy + newData.energy) / 2,
+            production: (prevData.production + newData.production) / 2,
+            efficiency: (prevData.efficiency + newData.efficiency) / 2,
+            defectRate: (prevData.defectRate + newData.defectRate) / 2,
+          };
+        });
+        lastUpdate = timestamp;
+      }
+      frameId = requestAnimationFrame(updateData);
+    };
+    
+    frameId = requestAnimationFrame(updateData);
+    return () => cancelAnimationFrame(frameId);
   }, [isClient]);
   
   // Highlight connections on robot hover
@@ -338,7 +384,7 @@ const LiveDataDashboard: React.FC = () => {
                     <div 
                       className="h-full bg-emerald-500 transition-all duration-1000"
                       style={{ width: `${(sensorData.energy - 70) / 60 * 100}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
                 
@@ -352,7 +398,7 @@ const LiveDataDashboard: React.FC = () => {
                     <div 
                       className="h-full bg-indigo-500 transition-all duration-1000"
                       style={{ width: `${sensorData.production}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
                 
@@ -366,7 +412,7 @@ const LiveDataDashboard: React.FC = () => {
                     <div 
                       className="h-full bg-green-500 transition-all duration-1000"
                       style={{ width: `${sensorData.efficiency}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
                 
@@ -380,7 +426,7 @@ const LiveDataDashboard: React.FC = () => {
                     <div 
                       className="h-full bg-red-500 transition-all duration-1000"
                       style={{ width: `${sensorData.defectRate * 100}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
               </div>
