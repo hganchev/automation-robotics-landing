@@ -26,15 +26,15 @@ export const createScene = () => {
 // Helper function to set up a basic camera
 export const createCamera = (width: number, height: number) => {
   const camera = new THREE.PerspectiveCamera(
-    35, // Wider FOV for better view
+    50, // Wider FOV for better robot visibility
     width / height,
     0.1,
     1000
   );
   
-  // Position the camera directly in front and higher to see the complete robot
-  camera.position.set(0, 5, 25);
-  camera.lookAt(new THREE.Vector3(0, 1, 0)); // Look at the middle of the robot
+  // Position the camera at an angle to better see the robot segments
+  camera.position.set(0, 3, 15);
+  camera.lookAt(new THREE.Vector3(0, 1, 0));
   
   return camera;
 };
@@ -53,52 +53,162 @@ export const createRenderer = (width: number, height: number) => {
   return renderer;
 };
 
-// Function to create a robotic arm model (simplified for now)
+// Create a new implementation of the robotic arm
 export const createRoboticArm = () => {
-  const group = new THREE.Group();
-  
-  // Base
-  const baseGeometry = new THREE.CylinderGeometry(1, 1, 0.5, 32);
-  const baseMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x0a84ff,
+  const robotGroup = new THREE.Group();
+
+  // Create materials with better visibility
+  const mainMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2196f3,
     metalness: 0.7,
-    roughness: 0.2
+    roughness: 0.3,
+    emissive: 0x144b7a,
+    emissiveIntensity: 0.2
   });
-  const base = new THREE.Mesh(baseGeometry, baseMaterial);
-  group.add(base);
-  
-  // Lower arm segment
-  const lowerArmGeometry = new THREE.BoxGeometry(0.5, 2, 0.5);
-  const lowerArmMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xffffff,
+
+  const jointMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff4444,
+    metalness: 0.8,
+    roughness: 0.2,
+    emissive: 0x992222,
+    emissiveIntensity: 0.3
+  });
+
+  // Base
+  const baseGeometry = new THREE.CylinderGeometry(1.2, 1.5, 0.8, 32);
+  const base = new THREE.Mesh(baseGeometry, mainMaterial);
+  base.castShadow = true;
+  base.receiveShadow = true;
+  robotGroup.add(base);
+
+  // Rotating platform on top of base
+  const platformGeometry = new THREE.CylinderGeometry(1, 1.2, 0.4, 32);
+  const platform = new THREE.Mesh(platformGeometry, mainMaterial);
+  platform.position.y = 0.6;
+  platform.castShadow = true;
+  platform.receiveShadow = true;
+  base.add(platform);
+
+  // First joint (shoulder) - smaller size
+  const shoulderJoint = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 32, 32),
+    jointMaterial
+  );
+  shoulderJoint.position.y = 0.4;
+  shoulderJoint.castShadow = true;
+  platform.add(shoulderJoint);
+
+  // Upper arm - now cylindrical
+  const upperArmGeometry = new THREE.CylinderGeometry(0.25, 0.25, 2.5, 32);
+  const upperArm = new THREE.Mesh(upperArmGeometry, mainMaterial);
+  upperArm.position.y = 1.25;
+  upperArm.castShadow = true;
+  shoulderJoint.add(upperArm);
+
+  // Elbow joint - smaller size
+  const elbowJoint = new THREE.Mesh(
+    new THREE.SphereGeometry(0.35, 32, 32),
+    jointMaterial
+  );
+  elbowJoint.position.y = 1.25;
+  elbowJoint.castShadow = true;
+  upperArm.add(elbowJoint);
+
+  // Forearm - now cylindrical
+  const forearmGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 32);
+  const forearm = new THREE.Mesh(forearmGeometry, mainMaterial);
+  forearm.position.y = 1;
+  forearm.castShadow = true;
+  elbowJoint.add(forearm);
+
+  // Wrist joint - smaller size
+  const wristJoint = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 32, 32),
+    jointMaterial
+  );
+  wristJoint.position.y = 1;
+  wristJoint.castShadow = true;
+  forearm.add(wristJoint);
+
+  // End effector (gripper)
+  const gripperGroup = new THREE.Group();
+  wristJoint.add(gripperGroup);
+
+  // Gripper base - now cylindrical
+  const gripperBaseGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 32);
+  const gripperBase = new THREE.Mesh(gripperBaseGeometry, mainMaterial);
+  gripperBase.position.y = 0.2;
+  gripperBase.castShadow = true;
+  gripperGroup.add(gripperBase);
+
+  // Gripper fingers - now cylindrical
+  const fingerGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 16);
+  const fingerMaterial = new THREE.MeshStandardMaterial({
+    color: 0x666666,
     metalness: 0.8,
     roughness: 0.2
   });
-  const lowerArm = new THREE.Mesh(lowerArmGeometry, lowerArmMaterial);
-  lowerArm.position.y = 1.5;
-  group.add(lowerArm);
+
+  // Left finger
+  const leftFinger = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  leftFinger.position.set(-0.2, 0.45, 0);
+  leftFinger.castShadow = true;
+  gripperBase.add(leftFinger);
+
+  // Right finger
+  const rightFinger = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  rightFinger.position.set(0.2, 0.45, 0);
+  rightFinger.castShadow = true;
+  gripperBase.add(rightFinger);
+
+  // Store references for animation
+  robotGroup.userData = {
+    platform,
+    shoulderJoint,
+    elbowJoint,
+    wristJoint,
+    leftFinger,
+    rightFinger
+  };
+
+  // Initial position
+  robotGroup.position.y = 0;
   
-  // Upper arm segment
-  const upperArmGeometry = new THREE.BoxGeometry(0.4, 1.8, 0.4);
-  const upperArm = new THREE.Mesh(upperArmGeometry, lowerArmMaterial);
-  upperArm.position.y = 3;
-  group.add(upperArm);
-  
-  // Gripper
-  const gripperGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-  const gripperMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xff3b30,
-    metalness: 0.8,
-    roughness: 0.2
-  });
-  const gripper = new THREE.Mesh(gripperGeometry, gripperMaterial);
-  gripper.position.y = 4;
-  group.add(gripper);
-  
-  // Position the entire arm
-  group.position.y = -1;
-  
-  return group;
+  return robotGroup;
+};
+
+// Function to animate the robotic arm
+export const animateRoboticArm = (robot: THREE.Group, time: number) => {
+  if (!robot?.userData) return;
+
+  const {
+    platform,
+    shoulderJoint,
+    elbowJoint,
+    wristJoint,
+    leftFinger,
+    rightFinger
+  } = robot.userData;
+
+  // Smooth rotation of the platform
+  platform.rotation.y = Math.sin(time * 0.5) * Math.PI * 0.25;
+
+  // Shoulder movement
+  shoulderJoint.rotation.z = Math.sin(time * 0.4) * 0.3;
+
+  // Elbow movement
+  elbowJoint.rotation.z = Math.sin(time * 0.6) * 0.4 - 0.2;
+
+  // Wrist movement
+  wristJoint.rotation.z = Math.sin(time * 0.8) * 0.3;
+  wristJoint.rotation.y = Math.sin(time * 0.7) * 0.5;
+
+  // Gripper animation
+  const gripperOpen = (Math.sin(time * 2) + 1) * 0.1;
+  if (leftFinger && rightFinger) {
+    leftFinger.position.x = -0.2 - gripperOpen;
+    rightFinger.position.x = 0.2 + gripperOpen;
+  }
 };
 
 // Function to create a factory floor
@@ -124,29 +234,6 @@ export const createFactoryFloor = () => {
   floor.add(plane);
   
   return floor;
-};
-
-// Function to animate the robotic arm
-export const animateRoboticArm = (arm: THREE.Group, time: number) => {
-  // Rotate the base slightly
-  if (arm.children[0]) {
-    arm.children[0].rotation.y = Math.sin(time * 0.5) * 0.2;
-  }
-  
-  // Move the lower arm
-  if (arm.children[1]) {
-    arm.children[1].rotation.x = Math.sin(time * 0.4) * 0.15;
-  }
-  
-  // Move the upper arm and gripper
-  if (arm.children[2]) {
-    arm.children[2].rotation.x = Math.sin(time * 0.3) * 0.1 - 0.4;
-  }
-  
-  // Move the gripper
-  if (arm.children[3]) {
-    arm.children[3].position.y = 8 + Math.sin(time) * 0.1;
-  }
 };
 
 // Helper function for the scroll shader effect
@@ -226,25 +313,43 @@ export function createUniversalRobot() {
 function createRobotSegments() {
   const segmentsGroup = new THREE.Group();
   
-  // Create arm segments with joints - adjusted sizes for better visibility
+  // Create arm segments with joints - larger and more visible
   const armMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x4287f5,
     metalness: 0.7,
-    roughness: 0.3
+    roughness: 0.3,
+    emissive: 0x1a4082,
+    emissiveIntensity: 0.2
   });
   
   // Add segments and connect them hierarchically with explicit rotation initialization
-  const segment1 = createArmSegment(0.6, 0.3, 1.5, armMaterial);
+  const segment1 = createArmSegment(0.8, 0.4, 2.0, armMaterial);
   segment1.position.y = 0.8;
   segment1.rotation.set(0, 0, 0);
 
-  const segment2 = createArmSegment(0.5, 0.25, 1.2, armMaterial);
-  segment2.position.y = 1.5;
+  const segment2 = createArmSegment(0.6, 0.35, 1.8, armMaterial);
+  segment2.position.y = 2.0;
   segment2.rotation.set(0, 0, 0);
   
-  const segment3 = createArmSegment(0.4, 0.2, 1.0, armMaterial);
-  segment3.position.y = 1.2;
+  const segment3 = createArmSegment(0.5, 0.3, 1.5, armMaterial);
+  segment3.position.y = 1.8;
   segment3.rotation.set(0, 0, 0);
+  
+  // Create end effector (gripper)
+  const gripperMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xff3b30,
+    metalness: 0.8,
+    roughness: 0.2,
+    emissive: 0x992012,
+    emissiveIntensity: 0.3
+  });
+  
+  const gripper = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.3, 0.6),
+    gripperMaterial
+  );
+  gripper.position.y = 1.6;
+  segment3.add(gripper);
   
   // Add segments to group
   segmentsGroup.add(segment1);

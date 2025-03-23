@@ -3,6 +3,15 @@
 import dynamic from 'next/dynamic';
 import React, { useRef, useState, useEffect } from 'react';
 import { useThreeScene } from '@/hooks/useThreeScene';
+import * as THREE from 'three';
+import {
+  createScene,
+  createCamera,
+  createRenderer,
+  createRoboticArm,
+  animateRoboticArm,
+  createFactoryFloor
+} from '@/lib/utils/threeUtils';
 
 interface RoboticSceneProps {
   className?: string;
@@ -11,24 +20,83 @@ interface RoboticSceneProps {
 
 const Scene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<{
+    scene: THREE.Scene;
+    camera: THREE.PerspectiveCamera;
+    renderer: THREE.WebGLRenderer;
+    robot: THREE.Group;
+  } | null>(null);
 
-  // Initialize Three.js scene with custom hook
-  const { sceneReady } = useThreeScene({
-    containerRef,
-    mouseMove: true,
-    scrollAnimation: true
-  });
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Get container dimensions
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+
+    // Initialize scene
+    const scene = createScene();
+    const camera = createCamera(width, height);
+    const renderer = createRenderer(width, height);
+    containerRef.current.appendChild(renderer.domElement);
+
+    // Create and add robot
+    const robot = createRoboticArm();
+    scene.add(robot);
+
+    // Add factory floor
+    const floor = createFactoryFloor();
+    scene.add(floor);
+
+    // Store references
+    sceneRef.current = { scene, camera, renderer, robot };
+
+    // Animation loop
+    let animationFrameId: number;
+    const animate = (time: number) => {
+      animationFrameId = requestAnimationFrame(animate);
+      
+      // Animate robot
+      if (robot) {
+        animateRoboticArm(robot, time * 0.001);
+      }
+
+      // Render scene
+      renderer.render(scene, camera);
+    };
+
+    animate(0);
+
+    // Handle window resize
+    const handleResize = () => {
+      if (!containerRef.current || !sceneRef.current) return;
+
+      const { camera, renderer } = sceneRef.current;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
+      if (containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+    };
+  }, []);
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        width: '100%', 
-        height: '100%',
-        opacity: sceneReady ? 1 : 0,
-        transition: 'opacity 0.5s ease-in',
-        willChange: 'opacity'
-      }} 
+    <div
+      ref={containerRef}
+      className="w-full h-full min-h-[400px]"
+      style={{ background: 'transparent' }}
     />
   );
 };
