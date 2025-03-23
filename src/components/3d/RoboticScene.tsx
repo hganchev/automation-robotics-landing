@@ -14,13 +14,23 @@ const Scene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize Three.js scene with custom hook
-  useThreeScene({
+  const { sceneReady } = useThreeScene({
     containerRef,
     mouseMove: true,
     scrollAnimation: true
   });
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div 
+      ref={containerRef} 
+      style={{ 
+        width: '100%', 
+        height: '100%',
+        opacity: sceneReady ? 1 : 0,
+        transition: 'opacity 0.5s ease-in'
+      }} 
+    />
+  );
 };
 
 const RoboticScene: React.FC<RoboticSceneProps> = ({

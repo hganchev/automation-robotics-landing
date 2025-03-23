@@ -44,7 +44,7 @@ export const useThreeScene = ({
     );
   }, [containerRef]);
 
-  const handleMouseMove = (event: MouseEvent) => {
+  const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!cameraRef.current || !robotRef.current || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
@@ -57,9 +57,9 @@ export const useThreeScene = ({
       duration: 1,
       ease: 'power2.out'
     });
-  };
+  }, []);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!robotRef.current || !factoryFloorRef.current || !cameraRef.current) return;
     
     const scrollProgress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
@@ -84,7 +84,7 @@ export const useThreeScene = ({
       x: scrollProgress * 0.1,
       duration: 0.5
     });
-  };
+  }, []);
   
   useEffect(() => {
     // Ensure we're in the browser environment
@@ -186,7 +186,7 @@ export const useThreeScene = ({
       
       window.removeEventListener('resize', handleResize);
     };
-  }, [containerRef, mouseMove, scrollAnimation, handleResize]);
+  }, [containerRef, mouseMove, scrollAnimation, handleResize, handleMouseMove, handleScroll]);
   
   useEffect(() => {
     const container = containerRef.current;

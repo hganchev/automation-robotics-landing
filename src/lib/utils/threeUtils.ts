@@ -202,6 +202,18 @@ export function createUniversalRobot() {
   const segments = createRobotSegments();
   robotGroup.add(segments);
 
+  // Initialize robot userData for animations
+  robotGroup.userData = {
+    joint1Group: segments.children[0],
+    joint2Group: segments.children[0].children[0],
+    joint3Group: segments.children[0].children[0].children[0],
+    jointAngles: {
+      joint1: 0,
+      joint2: 0,
+      joint3: 0
+    }
+  };
+
   return robotGroup;
 }
 
