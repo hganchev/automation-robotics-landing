@@ -26,15 +26,15 @@ export const createScene = () => {
 // Helper function to set up a basic camera
 export const createCamera = (width: number, height: number) => {
   const camera = new THREE.PerspectiveCamera(
-    60, // Reduced FOV for better perspective
-    width / height, // Aspect ratio
-    0.1, // Near clipping plane
-    1000 // Far clipping plane
+    35, // Wider FOV for better view
+    width / height,
+    0.1,
+    1000
   );
   
-  // Position the camera more centrally
-  camera.position.set(0, 2, 8);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  // Position the camera directly in front and higher to see the complete robot
+  camera.position.set(0, 5, 25);
+  camera.lookAt(new THREE.Vector3(0, 1, 0)); // Look at the middle of the robot
   
   return camera;
 };
@@ -43,11 +43,12 @@ export const createCamera = (width: number, height: number) => {
 export const createRenderer = (width: number, height: number) => {
   const renderer = new THREE.WebGLRenderer({ 
     antialias: true,
-    alpha: true // Transparent background
+    alpha: true
   });
   
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
   
   return renderer;
 };
@@ -192,15 +193,20 @@ export const createScrollShader = () => {
 export function createUniversalRobot() {
   const robotGroup = new THREE.Group();
   
-  // Base geometry
-  const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.5, 32);
-  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x4287f5 });
+  // Base geometry - increased size and improved materials
+  const baseGeometry = new THREE.CylinderGeometry(0.5, 0.6, 0.8, 32);
+  const baseMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x4287f5,
+    metalness: 0.8,
+    roughness: 0.2
+  });
   const base = new THREE.Mesh(baseGeometry, baseMaterial);
   robotGroup.add(base);
 
   // Create robot arm segments
   const segments = createRobotSegments();
   robotGroup.add(segments);
+  segments.position.y = 0.4; // Adjust segments position relative to base
 
   // Initialize robot userData for animations
   robotGroup.userData = {
@@ -220,21 +226,25 @@ export function createUniversalRobot() {
 function createRobotSegments() {
   const segmentsGroup = new THREE.Group();
   
-  // Create arm segments with joints
-  const armMaterial = new THREE.MeshStandardMaterial({ color: 0x4287f5 });
+  // Create arm segments with joints - adjusted sizes for better visibility
+  const armMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x4287f5,
+    metalness: 0.7,
+    roughness: 0.3
+  });
   
   // Add segments and connect them hierarchically with explicit rotation initialization
-  const segment1 = createArmSegment(0.4, 0.2, 1, armMaterial);
-  segment1.position.y = 0.5;
-  segment1.rotation.set(0, 0, 0); // Initialize rotation
+  const segment1 = createArmSegment(0.6, 0.3, 1.5, armMaterial);
+  segment1.position.y = 0.8;
+  segment1.rotation.set(0, 0, 0);
 
-  const segment2 = createArmSegment(0.3, 0.15, 0.8, armMaterial);
-  segment2.position.y = 1;
-  segment2.rotation.set(0, 0, 0); // Initialize rotation
+  const segment2 = createArmSegment(0.5, 0.25, 1.2, armMaterial);
+  segment2.position.y = 1.5;
+  segment2.rotation.set(0, 0, 0);
   
-  const segment3 = createArmSegment(0.2, 0.1, 0.6, armMaterial);
-  segment3.position.y = 0.8;
-  segment3.rotation.set(0, 0, 0); // Initialize rotation
+  const segment3 = createArmSegment(0.4, 0.2, 1.0, armMaterial);
+  segment3.position.y = 1.2;
+  segment3.rotation.set(0, 0, 0);
   
   // Add segments to group
   segmentsGroup.add(segment1);
@@ -355,38 +365,38 @@ export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
   if (!robot?.userData?.joint1Group) return;
   
   try {
-    // Define target positions for a pick-and-place routine
-    const cycle = Math.floor(time * 0.25) % 4;
-    const cycleTime = (time * 0.25) % 1;
+    // Define target positions for a pick-and-place routine with larger movements
+    const cycle = Math.floor(time * 0.15) % 4; // Slowed down the cycle
+    const cycleTime = (time * 0.15) % 1;
     const smoothCycleTime = smoothStep(cycleTime);
     
     let targetX = 0, targetY = 0, targetZ = 0;
     let grip = false;
     
-    // Pick and place motion sequence
+    // Pick and place motion sequence with increased range
     switch(cycle) {
-      case 0:
-        targetX = 2 + Math.sin(time * 0.1) * 0.3;
-        targetY = -1 - smoothCycleTime * 1.5;
-        targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+      case 0: // Move to pickup position
+        targetX = 3 * Math.sin(time * 0.1);
+        targetY = 1 + Math.sin(time * 0.2) * 0.5;
+        targetZ = 2 * Math.cos(time * 0.1);
         grip = false;
         break;
-      case 1:
-        targetX = 2 + Math.sin(time * 0.1) * 0.3;
-        targetY = -2.5 + smoothCycleTime * 2;
-        targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+      case 1: // Grip and lift
+        targetX = 3 * Math.sin(time * 0.1);
+        targetY = 1 + smoothCycleTime * 2;
+        targetZ = 2 * Math.cos(time * 0.1);
         grip = true;
         break;
-      case 2:
-        targetX = 2 + Math.sin(time * 0.1) * 0.3 - smoothCycleTime * 2;
-        targetY = -0.5;
-        targetZ = 1 + Math.cos(time * 0.1) * 0.3 - smoothCycleTime * 1;
+      case 2: // Move to place position
+        targetX = 3 * Math.sin(time * 0.1) * (1 - smoothCycleTime);
+        targetY = 3 - smoothCycleTime * 1.5;
+        targetZ = 2 * Math.cos(time * 0.1) * (1 - smoothCycleTime);
         grip = true;
         break;
-      case 3:
-        targetX = 0 + Math.sin(time * 0.1) * 0.3;
-        targetY = -0.5 - smoothCycleTime * 0.5;
-        targetZ = 0 + Math.cos(time * 0.1) * 0.3;
+      case 3: // Release and return
+        targetX = smoothCycleTime * 0.5;
+        targetY = 1.5 - smoothCycleTime;
+        targetZ = smoothCycleTime * 0.5;
         grip = cycleTime < 0.3;
         break;
     }
@@ -394,40 +404,15 @@ export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
     // Apply IK to move robot to target position
     const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
     
-    // Calculate orientation for the end effector with smaller rotation ranges
+    // Calculate orientation for the end effector with more pronounced rotation
     const targetRotation = new THREE.Euler(
-      0,
-      Math.sin(time * 0.3) * 0.1, // Reduced from 0.2
-      Math.sin(time * 0.5) * 0.15  // Reduced from 0.3
+      Math.sin(time * 0.3) * 0.2,
+      Math.sin(time * 0.4) * 0.3,
+      Math.sin(time * 0.5) * 0.25
     );
     
     // Solve IK to position the robot
     solveIK(robot, targetPosition, targetRotation);
-    
-    // Animate gripper fingers if they exist
-    if (robot.userData.leftFingers?.length && robot.userData.rightFingers?.length) {
-      const gripperWidth = grip ? 0.08 : 0.15;
-      
-      robot.userData.leftFingers.forEach((finger: THREE.Mesh) => {
-        if (finger?.position) {
-          gsap.to(finger.position, {
-            x: -gripperWidth,
-            duration: 0.2,
-            overwrite: true
-          });
-        }
-      });
-      
-      robot.userData.rightFingers.forEach((finger: THREE.Mesh) => {
-        if (finger?.position) {
-          gsap.to(finger.position, {
-            x: gripperWidth,
-            duration: 0.2,
-            overwrite: true
-          });
-        }
-      });
-    }
   } catch (error) {
     console.error('Error in animateUniversalRobot:', error);
   }

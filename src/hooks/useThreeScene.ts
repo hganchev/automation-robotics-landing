@@ -52,10 +52,11 @@ export const useThreeScene = ({
     const x = ((event.clientX - rect.left) / containerRef.current.offsetWidth) * 2 - 1;
     const y = -((event.clientY - rect.top) / containerRef.current.offsetHeight) * 2 + 1;
     
+    // Reduce movement sensitivity significantly, keep y position stable
     gsap.to(cameraRef.current.position, {
-      x: x * 0.5,
-      y: y * 0.2,
-      duration: 1,
+      x: x * 0.3,  // Reduced from 0.5
+      // Keep the y position fixed
+      duration: 1.5,
       ease: 'power2.out'
     });
   }, []);
@@ -65,8 +66,10 @@ export const useThreeScene = ({
     
     const scrollProgress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
     
+    // Keep the camera more centered on the robot
     gsap.to(cameraRef.current.position, {
-      y: 4 + scrollProgress * 2,
+      y: 3 + scrollProgress * 1.5, // Reduced range of movement
+      z: 12 - scrollProgress * 2,  // Move camera closer as user scrolls
       duration: 0.5
     });
     
@@ -112,7 +115,12 @@ export const useThreeScene = ({
         scene.add(robot);
         scene.add(factoryFloor);
         
-        robot.position.y = -1;
+        // Adjust robot position and scale
+        robot.position.set(0, 0, 0); 
+        robot.scale.set(0.8, 0.8, 0.8); // Scale down the robot to fit better in view
+        
+        // Position the factory floor slightly lower to make sure robot is fully visible
+        factoryFloor.position.y = -0.5;
         
         const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
         mainLight.position.set(5, 5, 5);
