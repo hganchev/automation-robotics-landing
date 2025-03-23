@@ -1,14 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useThreeScene } from '@/hooks/useThreeScene';
 
 interface RoboticSceneProps {
   className?: string;
   height?: string;
 }
-
 
 const Scene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +26,8 @@ const Scene: React.FC = () => {
         width: '100%', 
         height: '100%',
         opacity: sceneReady ? 1 : 0,
-        transition: 'opacity 0.5s ease-in'
+        transition: 'opacity 0.5s ease-in',
+        willChange: 'opacity'
       }} 
     />
   );
@@ -37,6 +37,16 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
   className = '',
   height = '100vh'
 }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // Return null on server-side
+  }
+
   return (
     <div 
       className={`relative w-full h-screen ${className}`}

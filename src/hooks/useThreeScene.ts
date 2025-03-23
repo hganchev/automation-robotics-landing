@@ -29,20 +29,21 @@ export const useThreeScene = ({
   const robotRef = useRef<THREE.Group | null>(null);
   const factoryFloorRef = useRef<THREE.Group | null>(null);
   const frameIdRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   
   const [sceneReady, setSceneReady] = useState(false);
   
   const handleResize = useCallback(() => {
     if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
     
-    cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+    
+    cameraRef.current.aspect = width / height;
     cameraRef.current.updateProjectionMatrix();
     
-    rendererRef.current.setSize(
-      containerRef.current.clientWidth,
-      containerRef.current.clientHeight
-    );
-  }, [containerRef]);
+    rendererRef.current.setSize(width, height);
+  }, []);
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!cameraRef.current || !robotRef.current || !containerRef.current) return;
@@ -80,129 +81,122 @@ export const useThreeScene = ({
       });
     }
     
-    gsap.to(factoryFloorRef.current.rotation, {
-      x: scrollProgress * 0.1,
-      duration: 0.5
-    });
+    if (factoryFloorRef.current) {
+      gsap.to(factoryFloorRef.current.rotation, {
+        x: scrollProgress * 0.1,
+        duration: 0.5
+      });
+    }
   }, []);
-  
+
+  // Main scene initialization effect
   useEffect(() => {
-    // Ensure we're in the browser environment
     if (typeof window === 'undefined' || !containerRef.current) return;
-    
-    let mounted = true;
+
+    mountedRef.current = true;
     
     const initScene = () => {
-      if (!containerRef.current || !mounted) return;
+      if (!containerRef.current || !mountedRef.current) return;
       
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      
-      const scene = createScene();
-      const camera = createCamera(width, height);
-      const renderer = createRenderer(width, height);
-      
-      const robot = createUniversalRobot();
-      const factoryFloor = createFactoryFloor();
-      
-      scene.add(robot);
-      scene.add(factoryFloor);
-      
-      // Position robot slightly lower and towards center
-      robot.position.y = -1;
-      
-      // Enhanced lighting setup
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-      mainLight.position.set(5, 5, 5);
-      mainLight.castShadow = true;
-      scene.add(mainLight);
-      
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
-      fillLight.position.set(-5, 3, -5);
-      scene.add(fillLight);
-      
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-      scene.add(ambientLight);
-      
-      // Set renderer parameters for better visuals
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      
-      sceneRef.current = scene;
-      cameraRef.current = camera;
-      rendererRef.current = renderer;
-      robotRef.current = robot;
-      factoryFloorRef.current = factoryFloor;
-      
-      containerRef.current.appendChild(renderer.domElement);
-      
-      const animate = (time: number) => {
-        if (!mounted || !sceneRef.current || !cameraRef.current || !rendererRef.current || !robotRef.current) return;
+      try {
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
         
-        animateUniversalRobot(robotRef.current, time * 0.001);
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
+        const scene = createScene();
+        const camera = createCamera(width, height);
+        const renderer = createRenderer(width, height);
+        
+        const robot = createUniversalRobot();
+        const factoryFloor = createFactoryFloor();
+        
+        scene.add(robot);
+        scene.add(factoryFloor);
+        
+        robot.position.y = -1;
+        
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        mainLight.position.set(5, 5, 5);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        
+        sceneRef.current = scene;
+        cameraRef.current = camera;
+        rendererRef.current = renderer;
+        robotRef.current = robot;
+        factoryFloorRef.current = factoryFloor;
+        
+        containerRef.current.appendChild(renderer.domElement);
+        
+        const animate = (time: number) => {
+          if (!mountedRef.current || !sceneRef.current || !cameraRef.current || !rendererRef.current || !robotRef.current) return;
+          
+          animateUniversalRobot(robotRef.current, time * 0.001);
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+          frameIdRef.current = requestAnimationFrame(animate);
+        };
+        
         frameIdRef.current = requestAnimationFrame(animate);
-      };
-      
-      frameIdRef.current = requestAnimationFrame(animate);
-      
-      if (mouseMove) {
-        window.addEventListener('mousemove', handleMouseMove);
-      }
-      
-      if (scrollAnimation) {
-        window.addEventListener('scroll', handleScroll);
-      }
-      
-      window.addEventListener('resize', handleResize);
-      
-      if (mounted) {
-        setSceneReady(true);
+        
+        if (mouseMove && mountedRef.current) {
+          window.addEventListener('mousemove', handleMouseMove);
+        }
+        
+        if (scrollAnimation && mountedRef.current) {
+          window.addEventListener('scroll', handleScroll);
+        }
+        
+        if (mountedRef.current) {
+          window.addEventListener('resize', handleResize);
+          setSceneReady(true);
+        }
+      } catch (error) {
+        console.error('Error initializing Three.js scene:', error);
       }
     };
 
     // Small delay to ensure DOM is ready
-    setTimeout(initScene, 0);
+    const timeoutId = setTimeout(initScene, 0);
     
     return () => {
-      mounted = false;
+      mountedRef.current = false;
+      clearTimeout(timeoutId);
+      
+      if (frameIdRef.current !== null) {
+        cancelAnimationFrame(frameIdRef.current);
+        frameIdRef.current = null;
+      }
       
       if (containerRef.current && rendererRef.current) {
         containerRef.current.removeChild(rendererRef.current.domElement);
       }
       
-      if (frameIdRef.current !== null) {
-        cancelAnimationFrame(frameIdRef.current);
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
       }
       
-      if (mouseMove) {
-        window.removeEventListener('mousemove', handleMouseMove);
-      }
-      
-      if (scrollAnimation) {
-        window.removeEventListener('scroll', handleScroll);
-      }
-      
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      
+      // Clean up references
+      sceneRef.current = null;
+      cameraRef.current = null;
+      rendererRef.current = null;
+      robotRef.current = null;
+      factoryFloorRef.current = null;
     };
-  }, [containerRef, mouseMove, scrollAnimation, handleResize, handleMouseMove, handleScroll]);
-  
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleMove = (event: MouseEvent) => {
-      handleMouseMove(event);
-    };
-
-    container.addEventListener('mousemove', handleMove);
-    return () => {
-      if (container) {
-        container.removeEventListener('mousemove', handleMove);
-      }
-    };
-  }, [handleMouseMove, containerRef]);
+  }, [containerRef, mouseMove, scrollAnimation, handleMouseMove, handleScroll, handleResize]);
 
   return {
     scene: sceneRef.current,

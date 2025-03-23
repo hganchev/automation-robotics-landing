@@ -19,15 +19,36 @@ const LiveDataDashboard: React.FC = () => {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [sensorData, setSensorData] = useState(generateMockData());
   const [activeRobot, setActiveRobot] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [isClient, setIsClient] = useState(false);
+  
+  // Handle client-side initialization
+  useEffect(() => {
+    setIsClient(true);
+    setCurrentTime(new Date().toLocaleTimeString());
+  }, []);
+
+  // Update time every second
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+    
+    return () => clearInterval(timeInterval);
+  }, [isClient]);
   
   // Simulate live data updates
   useEffect(() => {
+    if (!isClient) return;
+
     const interval = setInterval(() => {
       setSensorData(generateMockData());
     }, 3000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
   
   // Highlight connections on robot hover
   const handleRobotHover = (index: number) => {
@@ -61,6 +82,10 @@ const LiveDataDashboard: React.FC = () => {
       });
     }
   };
+
+  if (!isClient) {
+    return null; // Return null on server-side to prevent hydration mismatch
+  }
   
   return (
     <section className="bg-gray-900 py-24 px-4 md:px-10 text-white overflow-hidden">
@@ -84,7 +109,7 @@ const LiveDataDashboard: React.FC = () => {
             </div>
             
             <div className="font-mono text-blue-400">
-              {new Date().toLocaleTimeString()} • LIVE
+              {currentTime} • LIVE
             </div>
           </div>
           
