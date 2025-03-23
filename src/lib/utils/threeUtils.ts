@@ -133,32 +133,38 @@ export const createRoboticArm = () => {
   const gripperGroup = new THREE.Group();
   wristJoint.add(gripperGroup);
 
-  // Gripper base - now cylindrical
-  const gripperBaseGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 32);
+  // Gripper base - make it wider and more substantial
+  const gripperBaseGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
   const gripperBase = new THREE.Mesh(gripperBaseGeometry, mainMaterial);
   gripperBase.position.y = 0.2;
   gripperBase.castShadow = true;
   gripperGroup.add(gripperBase);
 
-  // Gripper fingers - now cylindrical
-  const fingerGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 16);
+  // Create more substantial gripper fingers
+  const fingerGeometry = new THREE.BoxGeometry(0.1, 0.4, 0.3); // Wider, shorter fingers
   const fingerMaterial = new THREE.MeshStandardMaterial({
     color: 0x666666,
     metalness: 0.8,
     roughness: 0.2
   });
 
-  // Left finger
+  // Left finger with proper pivot point
+  const leftFingerGroup = new THREE.Group();
   const leftFinger = new THREE.Mesh(fingerGeometry, fingerMaterial);
-  leftFinger.position.set(-0.2, 0.45, 0);
+  leftFinger.position.y = 0.2; // Move up to align with pivot
+  leftFingerGroup.position.set(-0.2, 0.4, 0);
+  leftFingerGroup.add(leftFinger);
   leftFinger.castShadow = true;
-  gripperBase.add(leftFinger);
+  gripperBase.add(leftFingerGroup);
 
-  // Right finger
+  // Right finger with proper pivot point
+  const rightFingerGroup = new THREE.Group();
   const rightFinger = new THREE.Mesh(fingerGeometry, fingerMaterial);
-  rightFinger.position.set(0.2, 0.45, 0);
+  rightFinger.position.y = 0.2; // Move up to align with pivot
+  rightFingerGroup.position.set(0.2, 0.4, 0);
+  rightFingerGroup.add(rightFinger);
   rightFinger.castShadow = true;
-  gripperBase.add(rightFinger);
+  gripperBase.add(rightFingerGroup);
 
   // Store references for animation
   robotGroup.userData = {
@@ -166,8 +172,8 @@ export const createRoboticArm = () => {
     shoulderJoint,
     elbowJoint,
     wristJoint,
-    leftFinger,
-    rightFinger
+    leftFingerGroup,
+    rightFingerGroup
   };
 
   // Initial position
@@ -185,33 +191,53 @@ export const animateRoboticArm = (robot: THREE.Group, time: number) => {
     shoulderJoint,
     elbowJoint,
     wristJoint,
-    leftFinger,
-    rightFinger
+    leftFingerGroup,
+    rightFingerGroup
   } = robot.userData;
 
-  // Base/Platform rotation - smooth sinusoidal movement
-  platform.rotation.y = Math.sin(time * 0.5) * Math.PI * 0.3;
-
-  // Shoulder movement - compound motion
-  const shoulderAngle = Math.sin(time * 0.4) * 0.4 + Math.cos(time * 0.3) * 0.2;
-  shoulderJoint.rotation.z = shoulderAngle;
-
-  // Elbow movement - more complex motion pattern
-  const elbowAngle = Math.sin(time * 0.6) * 0.5 + Math.cos(time * 0.2) * 0.3 - 0.2;
-  elbowJoint.rotation.z = elbowAngle;
-
-  // Wrist movement - multi-axis rotation
-  wristJoint.rotation.z = Math.sin(time * 0.8) * 0.4;
-  wristJoint.rotation.y = Math.cos(time * 0.7) * 0.6;
-  wristJoint.rotation.x = Math.sin(time * 0.5) * 0.3;
-
-  // Gripper animation - periodic opening and closing
-  const gripperCycle = (Math.sin(time * 1.5) + 1) * 0.5; // normalized 0 to 1
-  const gripperAngle = 0.15 + gripperCycle * 0.2; // base opening plus variation
-
-  if (leftFinger && rightFinger) {
-    leftFinger.rotation.z = gripperAngle;
-    rightFinger.rotation.z = -gripperAngle;
+  // Define the pick and place cycle (4 seconds total)
+  const cycleTime = (time % 4) / 4; // Normalize to 0-1 range
+  
+  // Define key positions and states
+  if (cycleTime < 0.25) {
+    // Moving to pickup position (down and forward)
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0, 0.5, cycleTime * 4);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(0, -0.8, cycleTime * 4);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0, 0.3, cycleTime * 4);
+    
+    // Open gripper
+    leftFingerGroup.rotation.z = -0.5;
+    rightFingerGroup.rotation.z = 0.5;
+  } 
+  else if (cycleTime < 0.5) {
+    // Gripping (close fingers)
+    const gripProgress = (cycleTime - 0.25) * 4;
+    leftFingerGroup.rotation.z = THREE.MathUtils.lerp(-0.5, 0, gripProgress);
+    rightFingerGroup.rotation.z = THREE.MathUtils.lerp(0.5, 0, gripProgress);
+  }
+  else if (cycleTime < 0.75) {
+    // Moving to place position (up and right)
+    const moveProgress = (cycleTime - 0.5) * 4;
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0.5, 0.3, moveProgress);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(-0.8, -0.4, moveProgress);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0.1, moveProgress);
+    platform.rotation.y = THREE.MathUtils.lerp(0, 0.7, moveProgress);
+    
+    // Keep gripper closed
+    leftFingerGroup.rotation.z = 0;
+    rightFingerGroup.rotation.z = 0;
+  }
+  else {
+    // Release and return to center
+    const returnProgress = (cycleTime - 0.75) * 4;
+    shoulderJoint.rotation.z = THREE.MathUtils.lerp(0.3, 0, returnProgress);
+    elbowJoint.rotation.z = THREE.MathUtils.lerp(-0.4, 0, returnProgress);
+    wristJoint.rotation.z = THREE.MathUtils.lerp(0.1, 0, returnProgress);
+    platform.rotation.y = THREE.MathUtils.lerp(0.7, 0, returnProgress);
+    
+    // Open gripper
+    leftFingerGroup.rotation.z = THREE.MathUtils.lerp(0, -0.5, returnProgress);
+    rightFingerGroup.rotation.z = THREE.MathUtils.lerp(0, 0.5, returnProgress);
   }
 
   // Add slight wobble to the entire robot
