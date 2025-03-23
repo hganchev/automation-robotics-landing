@@ -125,55 +125,6 @@ export const createFactoryFloor = () => {
   return floor;
 };
 
-// Function to create an animated conveyor belt
-export const createConveyorBelt = () => {
-  const group = new THREE.Group();
-  
-  // Belt base
-  const baseGeometry = new THREE.BoxGeometry(6, 0.2, 1.5);
-  const baseMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x555555,
-    metalness: 0.6,
-    roughness: 0.4
-  });
-  const base = new THREE.Mesh(baseGeometry, baseMaterial);
-  group.add(base);
-  
-  // Belt surface (this will be animated)
-  const beltGeometry = new THREE.BoxGeometry(6, 0.05, 1.2);
-  const beltMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x222222,
-    metalness: 0.1,
-    roughness: 0.9
-  });
-  const belt = new THREE.Mesh(beltGeometry, beltMaterial);
-  belt.position.y = 0.125;
-  group.add(belt);
-  
-  // Rollers at each end
-  const rollerGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 16);
-  const rollerMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x888888,
-    metalness: 0.8,
-    roughness: 0.3
-  });
-  
-  const roller1 = new THREE.Mesh(rollerGeometry, rollerMaterial);
-  roller1.position.set(3, 0.2, 0);
-  roller1.rotation.z = Math.PI / 2;
-  group.add(roller1);
-  
-  const roller2 = new THREE.Mesh(rollerGeometry, rollerMaterial);
-  roller2.position.set(-3, 0.2, 0);
-  roller2.rotation.z = Math.PI / 2;
-  group.add(roller2);
-  
-  // Position the conveyor
-  group.position.y = -1;
-  
-  return group;
-};
-
 // Function to animate the robotic arm
 export const animateRoboticArm = (arm: THREE.Group, time: number) => {
   // Rotate the base slightly
@@ -241,48 +192,47 @@ export const createScrollShader = () => {
 export const createUniversalRobot = () => {
   const robotGroup = new THREE.Group();
   
-  // Colors and materials
-  const primaryColor = new THREE.Color(0x0099cc); // UR Blue
-  const jointColor = new THREE.Color(0x888888); // Darker gray for joints
-  const baseColor = new THREE.Color(0x333333); // Dark gray for base
+  // Colors and materials with improved metallic finish
+  const primaryColor = new THREE.Color(0x0099cc);
+  const jointColor = new THREE.Color(0x888888);
+  const baseColor = new THREE.Color(0x333333);
   
   const primaryMaterial = new THREE.MeshStandardMaterial({
     color: primaryColor,
-    metalness: 0.7,
-    roughness: 0.2
+    metalness: 0.8,
+    roughness: 0.1,
+    envMapIntensity: 1.0
   });
   
   const jointMaterial = new THREE.MeshStandardMaterial({
     color: jointColor,
     metalness: 0.9,
-    roughness: 0.1
+    roughness: 0.05
   });
   
   const baseMaterial = new THREE.MeshStandardMaterial({
     color: baseColor,
-    metalness: 0.7,
-    roughness: 0.3
+    metalness: 0.8,
+    roughness: 0.15
   });
 
-  // Create robot structure with proper hierarchy
-  // Base - heavy cylindrical base
-  const baseGeometry = new THREE.CylinderGeometry(1.2, 1.4, 0.6, 32);
+  // Base with smoother geometry
+  const baseGeometry = new THREE.CylinderGeometry(1.2, 1.4, 0.6, 32, 2, true);
   const base = new THREE.Mesh(baseGeometry, baseMaterial);
   robotGroup.add(base);
   
-  // Base plate - connects base to first rotating joint
-  const basePlateGeometry = new THREE.CylinderGeometry(1.0, 1.0, 0.15, 32);
+  // Smoother base plate
+  const basePlateGeometry = new THREE.CylinderGeometry(1.0, 1.0, 0.15, 32, 2);
   const basePlate = new THREE.Mesh(basePlateGeometry, jointMaterial);
   basePlate.position.y = 0.375;
   base.add(basePlate);
   
-  // === Joint 1 (Base Rotation) ===
+  // === Joint 1 (Base Rotation) with improved geometry ===
   const joint1Group = new THREE.Group();
   joint1Group.position.y = 0.45;
   basePlate.add(joint1Group);
   
-  // Joint 1 housing
-  const joint1Geometry = new THREE.CylinderGeometry(0.8, 0.8, 0.7, 32);
+  const joint1Geometry = new THREE.CylinderGeometry(0.8, 0.8, 0.7, 32, 2);
   const joint1 = new THREE.Mesh(joint1Geometry, primaryMaterial);
   joint1Group.add(joint1);
   
@@ -314,8 +264,8 @@ export const createUniversalRobot = () => {
   upperArmGroup.position.z = 0;
   joint2Group.add(upperArmGroup);
   
-  // Upper arm - longer segment
-  const upperArmGeometry = new THREE.BoxGeometry(0.6, 0.6, 2.4);
+  // Improved upper arm geometry
+  const upperArmGeometry = new THREE.BoxGeometry(0.6, 0.6, 2.4, 2, 2, 4);
   const upperArm = new THREE.Mesh(upperArmGeometry, primaryMaterial);
   upperArm.position.z = 1.2;
   upperArmGroup.add(upperArm);
@@ -336,8 +286,8 @@ export const createUniversalRobot = () => {
   forearmGroup.position.z = 0;
   joint3Group.add(forearmGroup);
   
-  // Forearm - shorter segment
-  const forearmGeometry = new THREE.BoxGeometry(0.5, 0.5, 2.2);
+  // Improved forearm geometry
+  const forearmGeometry = new THREE.BoxGeometry(0.5, 0.5, 2.2, 2, 2, 4);
   const forearm = new THREE.Mesh(forearmGeometry, primaryMaterial);
   forearm.position.z = 1.1;
   forearmGroup.add(forearm);
@@ -471,6 +421,14 @@ export const createUniversalRobot = () => {
   robotGroup.position.y = -1.5;
   robotGroup.position.x = 0; // Changed from 3.5 to 0 to center the robot
   robotGroup.rotation.y = -Math.PI / 5;
+  
+  // Adjust initial posture to be more natural
+  joint1Group.rotation.y = Math.PI / 6; // Slight rotation at base
+  joint2Group.rotation.x = -Math.PI / 6; // Shoulder up slightly
+  joint3Group.rotation.x = Math.PI / 3; // Elbow bent naturally
+  joint4Group.rotation.z = Math.PI / 4; // Wrist roll
+  joint5Group.rotation.x = -Math.PI / 6; // Wrist pitch
+  joint6Group.rotation.z = 0; // Neutral end effector
   
   return robotGroup;
 };
@@ -652,4 +610,56 @@ export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
 function smoothStep(x: number): number {
   // Smoother interpolation than linear
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+}
+
+// Function to create an animated conveyor belt with improved materials
+export const createConveyorBelt = () => {
+  const conveyorGroup = new THREE.Group();
+
+  // Conveyor belt material with industrial look
+  const beltMaterial = new THREE.MeshStandardMaterial({
+    color: 0x222222,
+    roughness: 0.8,
+    metalness: 0.2
+  });
+
+  const frameMaterial = new THREE.MeshStandardMaterial({
+    color: 0x666666,
+    roughness: 0.4,
+    metalness: 0.8
+  });
+
+  // Main belt
+  const beltGeometry = new THREE.BoxGeometry(2, 0.1, 6);
+  const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+  belt.position.y = 0.5;
+  conveyorGroup.add(belt);
+
+  // Support frames
+  const frameGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+  
+  // Add legs at each corner
+  const positions = [
+    [-0.8, 0, -2.8],
+    [0.8, 0, -2.8],
+    [-0.8, 0, 2.8],
+    [0.8, 0, 2.8]
+  ];
+
+  positions.forEach(([x, y, z]) => {
+    const leg = new THREE.Mesh(frameGeometry, frameMaterial);
+    leg.position.set(x, y, z);
+    conveyorGroup.add(leg);
+  });
+
+  // Add rollers for detail
+  const rollerGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1.8, 16);
+  for (let z = -2.5; z <= 2.5; z += 0.5) {
+    const roller = new THREE.Mesh(rollerGeometry, frameMaterial);
+    roller.rotation.x = Math.PI / 2;
+    roller.position.set(0, 0.6, z);
+    conveyorGroup.add(roller);
+  }
+
+  return conveyorGroup;
 }
