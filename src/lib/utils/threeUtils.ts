@@ -228,3 +228,420 @@ export const createScrollShader = () => {
   
   return shaderMaterial;
 };
+
+// Function to create a 6-axis Universal Robot model with improved geometry
+export const createUniversalRobot = () => {
+  const robotGroup = new THREE.Group();
+  
+  // Colors and materials
+  const primaryColor = new THREE.Color(0x0099cc); // UR Blue
+  const jointColor = new THREE.Color(0x888888); // Darker gray for joints
+  const baseColor = new THREE.Color(0x333333); // Dark gray for base
+  
+  const primaryMaterial = new THREE.MeshStandardMaterial({
+    color: primaryColor,
+    metalness: 0.7,
+    roughness: 0.2
+  });
+  
+  const jointMaterial = new THREE.MeshStandardMaterial({
+    color: jointColor,
+    metalness: 0.9,
+    roughness: 0.1
+  });
+  
+  const baseMaterial = new THREE.MeshStandardMaterial({
+    color: baseColor,
+    metalness: 0.7,
+    roughness: 0.3
+  });
+
+  // Create robot structure with proper hierarchy
+  // Base - heavy cylindrical base
+  const baseGeometry = new THREE.CylinderGeometry(1.2, 1.4, 0.6, 32);
+  const base = new THREE.Mesh(baseGeometry, baseMaterial);
+  robotGroup.add(base);
+  
+  // Base plate - connects base to first rotating joint
+  const basePlateGeometry = new THREE.CylinderGeometry(1.0, 1.0, 0.15, 32);
+  const basePlate = new THREE.Mesh(basePlateGeometry, jointMaterial);
+  basePlate.position.y = 0.375;
+  base.add(basePlate);
+  
+  // === Joint 1 (Base Rotation) ===
+  const joint1Group = new THREE.Group();
+  joint1Group.position.y = 0.45;
+  basePlate.add(joint1Group);
+  
+  // Joint 1 housing
+  const joint1Geometry = new THREE.CylinderGeometry(0.8, 0.8, 0.7, 32);
+  const joint1 = new THREE.Mesh(joint1Geometry, primaryMaterial);
+  joint1Group.add(joint1);
+  
+  // === Shoulder Link ===
+  const shoulderGroup = new THREE.Group();
+  shoulderGroup.position.y = 0.45;
+  joint1Group.add(shoulderGroup);
+  
+  // Shoulder housing
+  const shoulderHousingGeometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+  const shoulderHousing = new THREE.Mesh(shoulderHousingGeometry, primaryMaterial);
+  shoulderHousing.position.y = 0;
+  shoulderGroup.add(shoulderHousing);
+  
+  // === Joint 2 (Shoulder) ===
+  const joint2Group = new THREE.Group();
+  joint2Group.position.y = 0;
+  joint2Group.position.z = 0.45;
+  shoulderGroup.add(joint2Group);
+  
+  // Joint 2 housing
+  const joint2Geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
+  const joint2 = new THREE.Mesh(joint2Geometry, jointMaterial);
+  joint2.rotation.x = Math.PI / 2; // Rotate to align with Z axis
+  joint2Group.add(joint2);
+  
+  // === Upper Arm ===
+  const upperArmGroup = new THREE.Group();
+  upperArmGroup.position.z = 0;
+  joint2Group.add(upperArmGroup);
+  
+  // Upper arm - longer segment
+  const upperArmGeometry = new THREE.BoxGeometry(0.6, 0.6, 2.4);
+  const upperArm = new THREE.Mesh(upperArmGeometry, primaryMaterial);
+  upperArm.position.z = 1.2;
+  upperArmGroup.add(upperArm);
+  
+  // === Joint 3 (Elbow) ===
+  const joint3Group = new THREE.Group();
+  joint3Group.position.z = 2.4;
+  upperArmGroup.add(joint3Group);
+  
+  // Joint 3 housing
+  const joint3Geometry = new THREE.CylinderGeometry(0.45, 0.45, 0.45, 32);
+  const joint3 = new THREE.Mesh(joint3Geometry, jointMaterial);
+  joint3.rotation.x = Math.PI / 2; // Rotate to align with Z axis
+  joint3Group.add(joint3);
+  
+  // === Forearm ===
+  const forearmGroup = new THREE.Group();
+  forearmGroup.position.z = 0;
+  joint3Group.add(forearmGroup);
+  
+  // Forearm - shorter segment
+  const forearmGeometry = new THREE.BoxGeometry(0.5, 0.5, 2.2);
+  const forearm = new THREE.Mesh(forearmGeometry, primaryMaterial);
+  forearm.position.z = 1.1;
+  forearmGroup.add(forearm);
+  
+  // === Joint 4 (Wrist 1 - Roll) ===
+  const joint4Group = new THREE.Group();
+  joint4Group.position.z = 2.2;
+  forearmGroup.add(joint4Group);
+  
+  // Joint 4 housing
+  const joint4Geometry = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 32);
+  const joint4 = new THREE.Mesh(joint4Geometry, jointMaterial);
+  joint4.rotation.z = Math.PI / 2; // Align for roll rotation
+  joint4Group.add(joint4);
+  
+  // === Wrist Housing ===
+  const wristGroup = new THREE.Group();
+  wristGroup.position.x = 0;
+  joint4Group.add(wristGroup);
+  
+  // Wrist segment
+  const wristGeometry = new THREE.BoxGeometry(0.8, 0.4, 0.4);
+  const wrist = new THREE.Mesh(wristGeometry, primaryMaterial);
+  wrist.position.x = 0.4;
+  wristGroup.add(wrist);
+  
+  // === Joint 5 (Wrist 2 - Pitch) ===
+  const joint5Group = new THREE.Group();
+  joint5Group.position.x = 0.8;
+  wristGroup.add(joint5Group);
+  
+  // Joint 5 housing
+  const joint5Geometry = new THREE.CylinderGeometry(0.35, 0.35, 0.35, 32);
+  const joint5 = new THREE.Mesh(joint5Geometry, jointMaterial);
+  joint5.rotation.y = Math.PI / 2; // Align for pitch rotation
+  joint5Group.add(joint5);
+  
+  // === Wrist Flange ===
+  const flangeGroup = new THREE.Group();
+  flangeGroup.position.z = 0;
+  joint5Group.add(flangeGroup);
+  
+  // Flange connector
+  const flangeGeometry = new THREE.BoxGeometry(0.35, 0.35, 0.6);
+  const flange = new THREE.Mesh(flangeGeometry, primaryMaterial);
+  flange.position.z = 0.3;
+  flangeGroup.add(flange);
+  
+  // === Joint 6 (Wrist 3 - Yaw) ===
+  const joint6Group = new THREE.Group();
+  joint6Group.position.z = 0.6;
+  flangeGroup.add(joint6Group);
+  
+  // Joint 6 housing - end effector mount
+  const joint6Geometry = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 32);
+  const joint6 = new THREE.Mesh(joint6Geometry, jointMaterial);
+  joint6Group.add(joint6);
+  
+  // === End Effector (Gripper) ===
+  const gripperGroup = new THREE.Group();
+  gripperGroup.position.y = 0.3;
+  joint6Group.add(gripperGroup);
+  
+  // Gripper base
+  const gripperBaseGeometry = new THREE.BoxGeometry(0.5, 0.25, 0.5);
+  const gripperBase = new THREE.Mesh(gripperBaseGeometry, jointMaterial);
+  gripperGroup.add(gripperBase);
+  
+  // Gripper fingers container - this will help with the opening/closing animation
+  const fingersGroup = new THREE.Group();
+  fingersGroup.position.y = 0.15;
+  gripperGroup.add(fingersGroup);
+
+  // Finger shapes
+  const fingerGeometry = new THREE.BoxGeometry(0.08, 0.3, 0.15);
+  const fingerMaterial = new THREE.MeshStandardMaterial({
+    color: 0x666666,
+    metalness: 0.9,
+    roughness: 0.2
+  });
+  
+  // Create finger pairs (2 pairs for 4 fingers total)
+  const leftFinger1 = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  leftFinger1.position.set(-0.15, 0.15, -0.1);
+  fingersGroup.add(leftFinger1);
+  
+  const rightFinger1 = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  rightFinger1.position.set(0.15, 0.15, -0.1);
+  fingersGroup.add(rightFinger1);
+  
+  const leftFinger2 = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  leftFinger2.position.set(-0.15, 0.15, 0.1);
+  fingersGroup.add(leftFinger2);
+  
+  const rightFinger2 = new THREE.Mesh(fingerGeometry, fingerMaterial);
+  rightFinger2.position.set(0.15, 0.15, 0.1);
+  fingersGroup.add(rightFinger2);
+  
+  // Store references to all joint groups for animation
+  robotGroup.userData = {
+    // Joint groups for rotation control
+    joint1Group, // Base rotation
+    joint2Group, // Shoulder
+    joint3Group, // Elbow
+    joint4Group, // Wrist roll
+    joint5Group, // Wrist pitch
+    joint6Group, // Wrist yaw
+    
+    // End effector
+    gripperGroup,
+    fingersGroup,
+    leftFingers: [leftFinger1, leftFinger2],
+    rightFingers: [rightFinger1, rightFinger2],
+    
+    // Store current target for IK
+    ikTarget: new THREE.Vector3(0, 0, 0),
+    isGripping: false,
+    
+    // Store current joint angles for IK calculation
+    jointAngles: {
+      joint1: 0,
+      joint2: 0,
+      joint3: 0,
+      joint4: 0,
+      joint5: 0,
+      joint6: 0
+    }
+  };
+  
+  // Initial position and rotation
+  robotGroup.position.y = -1.5;
+  robotGroup.position.x = 3.5;
+  robotGroup.rotation.y = -Math.PI / 5;
+  
+  return robotGroup;
+};
+
+// Simple inverse kinematics solver for the 6-axis robot
+const solveIK = (robot: THREE.Group, targetPosition: THREE.Vector3, targetRotation: THREE.Euler) => {
+  if (!robot || !robot.userData) return;
+  
+  const {
+    joint1Group,
+    joint2Group,
+    joint3Group,
+    joint4Group,
+    joint5Group,
+    joint6Group,
+    jointAngles
+  } = robot.userData;
+  
+  // Convert target position to robot's local space
+  const localTarget = targetPosition.clone();
+  // Fix: Use updateWorldMatrix and create a proper world inverse matrix
+  robot.updateWorldMatrix(true, false);
+  const worldInverse = new THREE.Matrix4().copy(robot.matrixWorld).invert();
+  localTarget.applyMatrix4(worldInverse);
+  
+  // Base rotation (joint 1) - rotate to face target
+  jointAngles.joint1 = Math.atan2(localTarget.x, localTarget.z);
+  joint1Group.rotation.y = jointAngles.joint1;
+  
+  // Get distance to target (in xz plane)
+  const distance = Math.sqrt(
+    Math.pow(localTarget.x, 2) + 
+    Math.pow(localTarget.z, 2)
+  );
+  
+  // Calculate the height difference
+  const heightDiff = localTarget.y - joint2Group.position.y;
+  
+  // Use geometry to determine shoulder and elbow angles (simple 2-joint IK)
+  // For the Universal Robot, we have these approximate lengths:
+  const upperArmLength = 2.4; // Length of upper arm
+  const forearmLength = 2.2;  // Length of forearm
+  
+  // Use law of cosines to compute joint angles
+  const upperArmSq = Math.pow(upperArmLength, 2);
+  const forearmSq = Math.pow(forearmLength, 2);
+  const distanceSq = Math.pow(distance, 2) + Math.pow(heightDiff, 2);
+  
+  // Calculate elbow angle
+  const elbowAngle = Math.PI - Math.acos(
+    Math.min(1, Math.max(-1, (upperArmSq + forearmSq - distanceSq) / (2 * upperArmLength * forearmLength)))
+  );
+  
+  // Calculate shoulder angle
+  const shoulderAngle = Math.atan2(heightDiff, distance) + 
+    Math.atan2(
+      forearmLength * Math.sin(elbowAngle),
+      upperArmLength + forearmLength * Math.cos(elbowAngle)
+    );
+  
+  // Apply calculated angles
+  jointAngles.joint2 = shoulderAngle;
+  jointAngles.joint3 = elbowAngle;
+  
+  // Apply the angles
+  joint2Group.rotation.z = shoulderAngle;
+  joint3Group.rotation.z = elbowAngle - Math.PI/2; // Adjust by 90° due to initial orientation
+  
+  // For simplicity, we'll just use the target rotation directly for the wrist joints
+  if (targetRotation) {
+    jointAngles.joint4 = targetRotation.z;
+    jointAngles.joint5 = targetRotation.y;
+    jointAngles.joint6 = targetRotation.x;
+    
+    joint4Group.rotation.z = targetRotation.z;
+    joint5Group.rotation.y = targetRotation.y;
+    joint6Group.rotation.x = targetRotation.x;
+  }
+};
+
+// Function to animate the 6-axis Universal Robot with inverse kinematics
+export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
+  if (!robot || !robot.userData) return;
+  
+  const {
+    joint1Group,
+    joint2Group,
+    joint3Group,
+    joint4Group,
+    joint5Group,
+    joint6Group,
+    gripperGroup,
+    fingersGroup,
+    leftFingers,
+    rightFingers,
+    ikTarget,
+    isGripping
+  } = robot.userData;
+  
+  // Define target positions for a pick-and-place routine
+  const cycle = Math.floor(time * 0.25) % 4; // 0, 1, 2, 3
+  const cycleTime = (time * 0.25) % 1; // 0-1 within each cycle
+  const smoothCycleTime = smoothStep(cycleTime);
+  
+  let targetX, targetY, targetZ;
+  let grip = false;
+  
+  // Pick and place motion sequence
+  switch(cycle) {
+    case 0: // Move to pick position
+      targetX = 4 + Math.sin(time * 0.1) * 0.3;
+      targetY = -1 - smoothCycleTime * 1.5;
+      targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+      grip = false;
+      break;
+    case 1: // Grip and lift up
+      targetX = 4 + Math.sin(time * 0.1) * 0.3;
+      targetY = -2.5 + smoothCycleTime * 2;
+      targetZ = 1 + Math.cos(time * 0.1) * 0.3;
+      grip = true;
+      break;
+    case 2: // Move right to place position
+      targetX = 4 + Math.sin(time * 0.1) * 0.3 - smoothCycleTime * 2;
+      targetY = -0.5;
+      targetZ = 1 + Math.cos(time * 0.1) * 0.3 - smoothCycleTime * 1;
+      grip = true;
+      break;
+    case 3: // Release and move back up
+      targetX = 2 + Math.sin(time * 0.1) * 0.3;
+      targetY = -0.5 - smoothCycleTime * 0.5;
+      targetZ = 0 + Math.cos(time * 0.1) * 0.3;
+      grip = cycleTime < 0.3; // Release after the first 30% of this cycle
+      break;
+  }
+  
+  // Apply IK to move robot to target position
+  const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
+  
+  // Calculate a reasonable orientation for the end effector based on position
+  const targetRotation = new THREE.Euler(
+    0,
+    Math.sin(time * 0.3) * 0.2,
+    Math.sin(time * 0.5) * 0.3
+  );
+  
+  // Solve IK to position the robot
+  solveIK(robot, targetPosition, targetRotation);
+  
+  // Animate gripper fingers
+  const gripperWidth = grip ? 0.08 : 0.15;
+  
+  // Fix: Add proper type for the finger parameter
+  if (Array.isArray(leftFingers)) {
+    leftFingers.forEach((finger: THREE.Mesh) => {
+      gsap.to(finger.position, {
+        x: -gripperWidth,
+        duration: 0.2,
+        overwrite: true
+      });
+    });
+  }
+  
+  if (Array.isArray(rightFingers)) {
+    rightFingers.forEach((finger: THREE.Mesh) => {
+      gsap.to(finger.position, {
+        x: gripperWidth,
+        duration: 0.2,
+        overwrite: true
+      });
+    });
+  }
+  
+  // Store current state
+  robot.userData.isGripping = grip;
+  robot.userData.ikTarget = targetPosition;
+};
+
+// Utility function for smooth transitions
+function smoothStep(x: number): number {
+  // Smoother interpolation than linear
+  return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+}

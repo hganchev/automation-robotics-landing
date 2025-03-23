@@ -1,8 +1,13 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, MutableRefObject } from 'react';
+import * as THREE from 'three';
 import { useThreeScene } from '@/hooks/useThreeScene';
-import { createConveyorBelt } from '@/lib/utils/threeUtils';
+import { 
+  createConveyorBelt, 
+  createUniversalRobot,
+  animateUniversalRobot 
+} from '@/lib/utils/threeUtils';
 import { gsap } from 'gsap';
 
 interface RoboticSceneProps {
@@ -14,8 +19,10 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
   className = '',
   height = '100vh'
 }) => {
+  // Using MutableRefObject to ensure type compatibility
   const containerRef = useRef<HTMLDivElement>(null);
   const conveyorRef = useRef<THREE.Group | null>(null);
+  const universalRobotRef = useRef<THREE.Group | null>(null);
 
   // Initialize Three.js scene with custom hook
   const { scene, sceneReady, roboticArm } = useThreeScene({
@@ -47,6 +54,32 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
       };
       
       animateConveyor();
+    }
+  }, [scene, sceneReady]);
+
+  // Add Universal Robot to the scene
+  useEffect(() => {
+    if (scene && sceneReady && !universalRobotRef.current) {
+      // Create the Universal Robot
+      const universalRobot = createUniversalRobot();
+      
+      // Position it to the right side of the scene
+      universalRobot.position.set(4, -1, -1);
+      universalRobot.rotation.y = -Math.PI / 4; // Angle it to face toward the center
+      
+      // Add it to the scene
+      scene.add(universalRobot);
+      universalRobotRef.current = universalRobot;
+      
+      // Set up animation loop for the Universal Robot
+      const animateRobot = (time: number) => {
+        if (universalRobotRef.current) {
+          animateUniversalRobot(universalRobotRef.current, time * 0.001);
+        }
+        requestAnimationFrame(animateRobot);
+      };
+      
+      requestAnimationFrame(animateRobot);
     }
   }, [scene, sceneReady]);
 
@@ -133,6 +166,12 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
         <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
           Explore Solutions
         </button>
+      </div>
+      
+      {/* Universal Robot Label */}
+      <div className="absolute bottom-10 right-10 z-10 bg-black/50 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30">
+        <div className="text-blue-400 font-mono text-sm">Universal Robot UR10e</div>
+        <div className="text-xs text-gray-400">6-axis industrial automation</div>
       </div>
     </div>
   );

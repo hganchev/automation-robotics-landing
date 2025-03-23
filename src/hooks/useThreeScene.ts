@@ -10,8 +10,9 @@ import {
   animateRoboticArm
 } from '../lib/utils/threeUtils';
 
+// Updated interface to accept the React.RefObject<HTMLDivElement | null>
 interface UseThreeSceneProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   mouseMove?: boolean;
   scrollAnimation?: boolean;
 }
