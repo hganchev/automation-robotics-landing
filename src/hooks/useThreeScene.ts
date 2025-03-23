@@ -43,23 +43,21 @@ export const useThreeScene = ({
     cameraRef.current.updateProjectionMatrix();
     
     rendererRef.current.setSize(width, height);
-  }, []);
+  }, [containerRef]);
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!cameraRef.current || !robotRef.current || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / containerRef.current.offsetWidth) * 2 - 1;
-    const y = -((event.clientY - rect.top) / containerRef.current.offsetHeight) * 2 + 1;
     
     // Reduce movement sensitivity significantly, keep y position stable
     gsap.to(cameraRef.current.position, {
       x: x * 0.3,  // Reduced from 0.5
-      // Keep the y position fixed
       duration: 1.5,
       ease: 'power2.out'
     });
-  }, []);
+  }, [containerRef]);
 
   const handleScroll = useCallback(() => {
     if (!robotRef.current || !factoryFloorRef.current || !cameraRef.current) return;
@@ -102,8 +100,9 @@ export const useThreeScene = ({
       if (!containerRef.current || !mountedRef.current) return;
       
       try {
-        const width = containerRef.current.clientWidth;
-        const height = containerRef.current.clientHeight;
+        const currentContainer = containerRef.current;
+        const width = currentContainer.clientWidth;
+        const height = currentContainer.clientHeight;
         
         const scene = createScene();
         const camera = createCamera(width, height);
@@ -144,7 +143,7 @@ export const useThreeScene = ({
         robotRef.current = robot;
         factoryFloorRef.current = factoryFloor;
         
-        containerRef.current.appendChild(renderer.domElement);
+        currentContainer.appendChild(renderer.domElement);
         
         const animate = (time: number) => {
           if (!mountedRef.current || !sceneRef.current || !cameraRef.current || !rendererRef.current || !robotRef.current) return;
@@ -173,24 +172,25 @@ export const useThreeScene = ({
       }
     };
 
-    // Small delay to ensure DOM is ready
-    const timeoutId = setTimeout(initScene, 0);
+    initScene();
     
     return () => {
       mountedRef.current = false;
-      clearTimeout(timeoutId);
       
       if (frameIdRef.current !== null) {
         cancelAnimationFrame(frameIdRef.current);
         frameIdRef.current = null;
       }
       
-      if (containerRef.current && rendererRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      const currentContainer = containerRef.current;
+      const currentRenderer = rendererRef.current;
+      
+      if (currentContainer && currentRenderer) {
+        currentContainer.removeChild(currentRenderer.domElement);
       }
       
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
+      if (currentRenderer) {
+        currentRenderer.dispose();
       }
       
       window.removeEventListener('mousemove', handleMouseMove);

@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import React, { useRef, useState, useEffect } from 'react';
-import { useThreeScene } from '@/hooks/useThreeScene';
 import * as THREE from 'three';
 import {
   createScene,
@@ -38,7 +37,8 @@ const Scene: React.FC = () => {
     const scene = createScene();
     const camera = createCamera(width, height);
     const renderer = createRenderer(width, height);
-    containerRef.current.appendChild(renderer.domElement);
+    const currentContainer = containerRef.current;
+    currentContainer.appendChild(renderer.domElement);
 
     // Create and add robot
     const robot = createRoboticArm();
@@ -54,6 +54,7 @@ const Scene: React.FC = () => {
     // Animation loop
     let animationFrameId: number;
     const animate = (time: number) => {
+      if (!sceneRef.current) return;
       animationFrameId = requestAnimationFrame(animate);
       
       // Animate robot
@@ -69,11 +70,11 @@ const Scene: React.FC = () => {
 
     // Handle window resize
     const handleResize = () => {
-      if (!containerRef.current || !sceneRef.current) return;
+      if (!currentContainer || !sceneRef.current) return;
 
       const { camera, renderer } = sceneRef.current;
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
+      const width = currentContainer.clientWidth;
+      const height = currentContainer.clientHeight;
 
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -85,9 +86,16 @@ const Scene: React.FC = () => {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-      if (containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (currentContainer && renderer) {
+        currentContainer.removeChild(renderer.domElement);
+      }
+      // Clean up Three.js resources
+      if (sceneRef.current) {
+        sceneRef.current.scene.clear();
+        sceneRef.current.renderer.dispose();
       }
     };
   }, []);

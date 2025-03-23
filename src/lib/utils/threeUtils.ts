@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { gsap } from 'gsap';
 
 // Helper function to set up a basic Three.js scene
 export const createScene = () => {
@@ -190,25 +189,34 @@ export const animateRoboticArm = (robot: THREE.Group, time: number) => {
     rightFinger
   } = robot.userData;
 
-  // Smooth rotation of the platform
-  platform.rotation.y = Math.sin(time * 0.5) * Math.PI * 0.25;
+  // Base/Platform rotation - smooth sinusoidal movement
+  platform.rotation.y = Math.sin(time * 0.5) * Math.PI * 0.3;
 
-  // Shoulder movement
-  shoulderJoint.rotation.z = Math.sin(time * 0.4) * 0.3;
+  // Shoulder movement - compound motion
+  const shoulderAngle = Math.sin(time * 0.4) * 0.4 + Math.cos(time * 0.3) * 0.2;
+  shoulderJoint.rotation.z = shoulderAngle;
 
-  // Elbow movement
-  elbowJoint.rotation.z = Math.sin(time * 0.6) * 0.4 - 0.2;
+  // Elbow movement - more complex motion pattern
+  const elbowAngle = Math.sin(time * 0.6) * 0.5 + Math.cos(time * 0.2) * 0.3 - 0.2;
+  elbowJoint.rotation.z = elbowAngle;
 
-  // Wrist movement
-  wristJoint.rotation.z = Math.sin(time * 0.8) * 0.3;
-  wristJoint.rotation.y = Math.sin(time * 0.7) * 0.5;
+  // Wrist movement - multi-axis rotation
+  wristJoint.rotation.z = Math.sin(time * 0.8) * 0.4;
+  wristJoint.rotation.y = Math.cos(time * 0.7) * 0.6;
+  wristJoint.rotation.x = Math.sin(time * 0.5) * 0.3;
 
-  // Gripper animation
-  const gripperOpen = (Math.sin(time * 2) + 1) * 0.1;
+  // Gripper animation - periodic opening and closing
+  const gripperCycle = (Math.sin(time * 1.5) + 1) * 0.5; // normalized 0 to 1
+  const gripperAngle = 0.15 + gripperCycle * 0.2; // base opening plus variation
+
   if (leftFinger && rightFinger) {
-    leftFinger.position.x = -0.2 - gripperOpen;
-    rightFinger.position.x = 0.2 + gripperOpen;
+    leftFinger.rotation.z = gripperAngle;
+    rightFinger.rotation.z = -gripperAngle;
   }
+
+  // Add slight wobble to the entire robot
+  robot.position.y = Math.sin(time * 0.8) * 0.05;
+  robot.rotation.z = Math.sin(time * 0.3) * 0.02;
 };
 
 // Function to create a factory floor
@@ -277,38 +285,34 @@ export const createScrollShader = () => {
 };
 
 // Function to create a 6-axis Universal Robot model with improved geometry
-export function createUniversalRobot() {
+export const createUniversalRobot = () => {
   const robotGroup = new THREE.Group();
   
-  // Base geometry - increased size and improved materials
-  const baseGeometry = new THREE.CylinderGeometry(0.5, 0.6, 0.8, 32);
-  const baseMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x4287f5,
-    metalness: 0.8,
-    roughness: 0.2
-  });
-  const base = new THREE.Mesh(baseGeometry, baseMaterial);
-  robotGroup.add(base);
-
   // Create robot arm segments
   const segments = createRobotSegments();
   robotGroup.add(segments);
   segments.position.y = 0.4; // Adjust segments position relative to base
-
-  // Initialize robot userData for animations
+  
+  // Initialize robot userData for animations - store all necessary joint references
   robotGroup.userData = {
     joint1Group: segments.children[0],
-    joint2Group: segments.children[0].children[0],
-    joint3Group: segments.children[0].children[0].children[0],
+    joint2Group: segments.children[0]?.children[0],
+    joint3Group: segments.children[0]?.children[0]?.children[0],
+    joint4Group: segments.children[0]?.children[0]?.children[0]?.children[0],
+    joint5Group: segments.children[0]?.children[0]?.children[0]?.children[0]?.children[0],
+    joint6Group: segments.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0],
     jointAngles: {
       joint1: 0,
       joint2: 0,
-      joint3: 0
+      joint3: 0,
+      joint4: 0,
+      joint5: 0,
+      joint6: 0
     }
   };
-
+  
   return robotGroup;
-}
+};
 
 function createRobotSegments() {
   const segmentsGroup = new THREE.Group();
@@ -476,38 +480,30 @@ export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
     const smoothCycleTime = smoothStep(cycleTime);
     
     let targetX = 0, targetY = 0, targetZ = 0;
-    let grip = false;
     
     // Pick and place motion sequence with increased range
-    switch(cycle) {
-      case 0: // Move to pickup position
+    switch (cycle) {
+      case 0:
         targetX = 3 * Math.sin(time * 0.1);
         targetY = 1 + Math.sin(time * 0.2) * 0.5;
         targetZ = 2 * Math.cos(time * 0.1);
-        grip = false;
         break;
-      case 1: // Grip and lift
+      case 1:
         targetX = 3 * Math.sin(time * 0.1);
         targetY = 1 + smoothCycleTime * 2;
         targetZ = 2 * Math.cos(time * 0.1);
-        grip = true;
         break;
-      case 2: // Move to place position
+      case 2:
         targetX = 3 * Math.sin(time * 0.1) * (1 - smoothCycleTime);
         targetY = 3 - smoothCycleTime * 1.5;
         targetZ = 2 * Math.cos(time * 0.1) * (1 - smoothCycleTime);
-        grip = true;
         break;
-      case 3: // Release and return
+      case 3:
         targetX = smoothCycleTime * 0.5;
         targetY = 1.5 - smoothCycleTime;
         targetZ = smoothCycleTime * 0.5;
-        grip = cycleTime < 0.3;
         break;
     }
-    
-    // Apply IK to move robot to target position
-    const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
     
     // Calculate orientation for the end effector with more pronounced rotation
     const targetRotation = new THREE.Euler(
@@ -516,8 +512,9 @@ export const animateUniversalRobot = (robot: THREE.Group, time: number) => {
       Math.sin(time * 0.5) * 0.25
     );
     
-    // Solve IK to position the robot
-    solveIK(robot, targetPosition, targetRotation);
+    // Apply IK to position the robot
+    solveIK(robot, new THREE.Vector3(targetX, targetY, targetZ), targetRotation);
+    
   } catch (error) {
     console.error('Error in animateUniversalRobot:', error);
   }
