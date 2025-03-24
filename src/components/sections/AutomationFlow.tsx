@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Register ScrollTrigger plugin
+// Register ScrollTrigger plugin once outside component
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -12,23 +12,33 @@ if (typeof window !== 'undefined') {
 const AutomationFlow: React.FC = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const componentsRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
-
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Initialize animations only once when component mounts
   useEffect(() => {
-    if (sectionRef.current && componentsRef.current) {
-      timelineRef.current = gsap.timeline({
+    // Skip if already initialized or refs are not ready
+    if (isInitialized || !sectionRef.current || !componentsRef.current) return;
+    
+    // Create a context to isolate GSAP animations
+    const ctx = gsap.context(() => {
+      // Safe non-null assertion since we've checked above
+      const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
           start: 'top center',
           end: 'bottom center',
           scrub: 1,
+          // Prevent duplicate ScrollTriggers
+          id: 'automation-flow',
+          markers: false,
         }
       });
 
-      const components = componentsRef.current.querySelectorAll('.automation-component');
+      // Safe to use componentsRef.current here as we've checked it's not null above
+      const components = componentsRef.current?.querySelectorAll('.automation-component') || [];
       
       components.forEach((component, index) => {
-        timelineRef.current?.fromTo(
+        timeline.fromTo(
           component, 
           { 
             opacity: 0, 
@@ -46,9 +56,9 @@ const AutomationFlow: React.FC = () => {
         );
       });
       
-      const connectors = componentsRef.current.querySelectorAll('.connector');
+      const connectors = componentsRef.current?.querySelectorAll('.connector') || [];
       connectors.forEach((connector, index) => {
-        timelineRef.current?.fromTo(
+        timeline.fromTo(
           connector, 
           { 
             height: '0%', 
@@ -63,15 +73,15 @@ const AutomationFlow: React.FC = () => {
           (index + 1) * 0.3 - 0.15
         );
       });
-    }
+    }, sectionRef); // Scope GSAP to our component
     
+    setIsInitialized(true);
+    
+    // Return a cleanup function that properly kills all animations
     return () => {
-      if (timelineRef.current) {
-        timelineRef.current.kill();
-      }
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ctx.revert(); // This handles all cleanup in one go
     };
-  }, []);
+  }, [isInitialized]); // Only re-run if isInitialized changes (which it won't after first mount)
 
   return (
     <section 
@@ -124,7 +134,7 @@ const AutomationFlow: React.FC = () => {
               <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center shrink-0">
                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14.5 14.2l2.9 1.7-.8 1.3L13 15v-5h1.5v4.2zM22 7h-7V2H9v5H2v15h20V7zM11 4h2v2h-2V4zM4 20V9h16v11H4z"></path>
-                  <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path>
+                  <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2-.9 2 2-.9 2-2 2z"></path>
                 </svg>
               </div>
               <div>

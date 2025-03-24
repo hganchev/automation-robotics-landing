@@ -111,7 +111,7 @@ const Scene: React.FC = () => {
 
 const RoboticScene: React.FC<RoboticSceneProps> = ({
   className = '',
-  height = '100vh'
+  height = '600px' // Changed from 100vh to 600px for smaller height
 }) => {
   const [isClient, setIsClient] = useState(false);
 
@@ -124,31 +124,36 @@ const RoboticScene: React.FC<RoboticSceneProps> = ({
   }
 
   return (
-    <div 
-      className={`relative w-full h-screen ${className}`}
-      style={{ height }}
-    >
-      <Scene />
-      
-      {/* Main headline */}
-      <div className="absolute top-1/3 left-10 transform -translate-y-1/2 z-20 max-w-xl">
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+    <section className="py-20 px-4 md:px-10 bg-black">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-4xl md:text-6xl font-bold text-white mb-12 text-center">
           Next-Gen <span className="text-blue-400">Automation</span> & <span className="text-blue-400">Robotics</span>
-        </h1>
-        <p className="text-lg md:text-xl text-gray-200 mb-8">
-          Revolutionize your manufacturing with cutting-edge robotics and intelligent automation systems.
-        </p>
-        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-          Explore Solutions
-        </button>
+        </h2>
+        
+        <div 
+          className={`relative w-full ${className}`}
+          style={{ height }}
+        >
+          <Scene />
+          
+          {/* Content overlay */}
+          <div className="absolute top-1/2 left-10 transform -translate-y-1/2 z-20 max-w-xl">
+            <p className="text-lg md:text-xl text-gray-200 mb-8">
+              Revolutionize your manufacturing with cutting-edge robotics and intelligent automation systems.
+            </p>
+            <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+              Explore Solutions
+            </button>
+          </div>
+          
+          {/* Universal Robot Label */}
+          <div className="absolute bottom-10 right-10 z-20 bg-black/50 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30">
+            <div className="text-blue-400 font-mono text-sm">Universal Robot UR10e</div>
+            <div className="text-xs text-gray-400">6-axis industrial automation</div>
+          </div>
+        </div>
       </div>
-      
-      {/* Universal Robot Label */}
-      <div className="absolute bottom-10 right-10 z-20 bg-black/50 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30">
-        <div className="text-blue-400 font-mono text-sm">Universal Robot UR10e</div>
-        <div className="text-xs text-gray-400">6-axis industrial automation</div>
-      </div>
-    </div>
+    </section>
   );
 };
 
