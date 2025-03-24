@@ -4,9 +4,16 @@ import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Register ScrollTrigger once outside the component
+// Register plugins outside component but inside client-side check
 if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
+  // Only register the plugin once
+  if (!gsap.plugins || !gsap.plugins.ScrollTrigger) {
+    gsap.registerPlugin(ScrollTrigger);
+  }
+  
+  // Disable smooth scroll (which can interfere with ScrollTrigger)
+  // Uncomment if needed
+  // gsap.config({ nullTargetWarn: false });
 }
 
 // Component types
@@ -56,115 +63,142 @@ const AutomationFlow: React.FC = () => {
   const connector1Ref = useRef<HTMLDivElement>(null);
   const connector2Ref = useRef<HTMLDivElement>(null);
   
+  // Flag to track if animation has been initialized
+  const isInitializedRef = useRef(false);
+  
   // Initialize animations
   useEffect(() => {
     // Safety check for browser environment
     if (typeof window === 'undefined') return;
     
-    // Make sure all refs are available before attempting to animate
-    const allRefs = [
-      sectionRef.current,
-      component1Ref.current,
-      component2Ref.current,
-      component3Ref.current,
-      connector1Ref.current,
-      connector2Ref.current
-    ];
+    // Prevent double initialization
+    if (isInitializedRef.current) return;
     
-    if (allRefs.some(ref => ref === null)) return;
+    // Make sure ScrollTrigger is registered
+    if (!gsap.plugins || !gsap.plugins.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+    }
     
-    // Create a GSAP context for proper cleanup
-    const ctx = gsap.context(() => {
-      // Set initial states
-      gsap.set([component1Ref.current, component2Ref.current, component3Ref.current], {
-        opacity: 0,
-        x: -50,
-        scale: 0.9
-      });
+    // Delay slightly to ensure DOM is fully ready
+    const initTimer = setTimeout(() => {
+      // Make sure all refs are available before attempting to animate
+      if (!sectionRef.current || 
+          !component1Ref.current || 
+          !component2Ref.current || 
+          !component3Ref.current || 
+          !connector1Ref.current || 
+          !connector2Ref.current) {
+        return;
+      }
       
-      gsap.set([connector1Ref.current, connector2Ref.current], {
-        height: '0%',
-        opacity: 0
-      });
+      // Create a GSAP context for proper cleanup
+      const ctx = gsap.context(() => {
+        // Set initial states
+        gsap.set([component1Ref.current, component2Ref.current, component3Ref.current], {
+          opacity: 0,
+          x: -50,
+          scale: 0.9
+        });
+        
+        gsap.set([connector1Ref.current, connector2Ref.current], {
+          height: '0%',
+          opacity: 0
+        });
+        
+        // Force a refresh of ScrollTrigger
+        ScrollTrigger.refresh(true);
+        
+        // Animate first component with simpler configuration
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top 80%', // Trigger earlier in the viewport
+            toggleActions: 'play none none reverse',
+            once: false,
+            id: 'component-1',
+            markers: false, // Enable markers for debugging (remove in production)
+          }
+        })
+        .to(component1Ref.current, {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power2.out'
+        });
+        
+        // Animate first connector and second component
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: component1Ref.current,
+            start: 'bottom 70%',
+            toggleActions: 'play none none reverse',
+            once: false,
+            id: 'component-2',
+            markers: false, // Enable markers for debugging (remove in production)
+          }
+        })
+        .to(connector1Ref.current, {
+          height: '100%',
+          opacity: 1,
+          duration: 0.6,
+          ease: 'power1.inOut'
+        })
+        .to(component2Ref.current, {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power2.out'
+        }, '-=0.3');
+        
+        // Animate second connector and third component
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: component2Ref.current,
+            start: 'bottom 70%',
+            toggleActions: 'play none none reverse',
+            once: false,
+            id: 'component-3',
+            markers: false, // Enable markers for debugging (remove in production)
+          }
+        })
+        .to(connector2Ref.current, {
+          height: '100%',
+          opacity: 1,
+          duration: 0.6,
+          ease: 'power1.inOut'
+        })
+        .to(component3Ref.current, {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power2.out'
+        }, '-=0.3');
+        
+        // Mark as initialized
+        isInitializedRef.current = true;
+      }, sectionRef);
       
-      // Animate first component
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 70%', 
-          end: 'top 30%',
-          toggleActions: 'play none none none',
-          id: 'component-1',
-        }
-      })
-      .to(component1Ref.current, {
-        opacity: 1,
-        x: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: 'power2.out'
-      });
-      
-      // Animate first connector and second component
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 60%',
-          end: 'top 20%',
-          toggleActions: 'play none none none',
-          id: 'component-2',
-        }
-      })
-      .to(connector1Ref.current, {
-        height: '100%',
-        opacity: 1,
-        duration: 0.6,
-        ease: 'power1.inOut'
-      })
-      .to(component2Ref.current, {
-        opacity: 1,
-        x: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: 'power2.out'
-      }, '-=0.3');
-      
-      // Animate second connector and third component
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 50%',
-          end: 'top 10%',
-          toggleActions: 'play none none none',
-          id: 'component-3',
-        }
-      })
-      .to(connector2Ref.current, {
-        height: '100%',
-        opacity: 1,
-        duration: 0.6,
-        ease: 'power1.inOut'
-      })
-      .to(component3Ref.current, {
-        opacity: 1,
-        x: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: 'power2.out'
-      }, '-=0.3');
-    }, sectionRef);
+      // Cleanup function
+      return () => {
+        ctx.revert(); // Clean up all GSAP animations and ScrollTriggers
+        isInitializedRef.current = false;
+      };
+    }, 500); // Small delay to ensure DOM is ready
     
-    // Cleanup function
     return () => {
-      ctx.revert(); // Clean up all GSAP animations and ScrollTriggers
+      clearTimeout(initTimer);
     };
-  }, []);
+  }, []); // Empty dependency array means this only runs once on mount
 
   return (
     <section 
       ref={sectionRef} 
       className="min-h-screen py-20 px-4 md:px-10 transition-all duration-500 relative overflow-hidden"
       style={{ background: 'rgb(10, 10, 25)' }}
+      id="automation-flow-section" // Add ID for easier debug
     >
       <div className="max-w-7xl mx-auto">
         <h2 className="text-4xl md:text-6xl font-bold text-white mb-12 text-center">
@@ -195,7 +229,7 @@ const AutomationFlow: React.FC = () => {
               icon={
                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M22 11.5c0-1.4-1.1-2.5-2.5-2.5h-3.8L15 7.1c-.2-.5-.7-.8-1.2-.8h-3.6c-.5 0-1 .4-1.2.8l-.7 1.9H4.5C3.1 9 2 10.1 2 11.5v7C2 19.9 3.1 21 4.5 21h15c1.4 0 2.5-1.1 2.5-2.5v-7z"></path>
-                  <path d="M12 18c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
+                  <path d="M12 18c-2.2 0-4-1.8-4-4s1.8-4 4-4 4-1.8 4-4-1.8-4-4-4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
                 </svg>
               }
               title="AI Processing Unit"
@@ -212,7 +246,7 @@ const AutomationFlow: React.FC = () => {
               icon={
                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14.5 14.2l2.9 1.7-.8 1.3L13 15v-5h1.5v4.2zM22 7h-7V2H9v5H2v15h20V7zM11 4h2v2h-2V4zM4 20V9h16v11H4z"></path>
-                  <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2-.9 2 2-.9 2-2 2z"></path>
+                  <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2-.9 2-2-.9-2-2-2z"></path>
                 </svg>
               }
               title="Quality Control"
