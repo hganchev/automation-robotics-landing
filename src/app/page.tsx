@@ -2,6 +2,7 @@ import React from 'react';
 import RoboticScene from '../components/3d/RoboticScene';
 import AutomationFlow from '../components/sections/AutomationFlow';
 import LiveDataDashboard from '../components/sections/LiveDataDashboard';
+import AdvancedFeatures from '../components/sections/AdvancedFeatures';
 
 export default function Home() {
   return (
@@ -15,85 +16,8 @@ export default function Home() {
       {/* Live data dashboard section */}
       <LiveDataDashboard />
       
-      {/* Features section */}
-      <section className="py-24 px-6 md:px-10 bg-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 text-center">
-            Advanced <span className="text-blue-400">Features</span>
-          </h2>
-          <p className="text-xl text-blue-200 mb-16 text-center max-w-2xl mx-auto">
-            Our next-generation robotics and automation solutions offer unparalleled capabilities
-          </p>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">AI-Powered Optimization</h3>
-              <p className="text-blue-200">Machine learning algorithms continuously optimize robot movements and production flow for maximum efficiency.</p>
-            </div>
-            
-            {/* Feature 2 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">Predictive Maintenance</h3>
-              <p className="text-blue-200">Prevent unexpected downtime with advanced diagnostics that predict maintenance needs before failures occur.</p>
-            </div>
-            
-            {/* Feature 3 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">Cloud Integration</h3>
-              <p className="text-blue-200">Seamlessly connect your automation systems to the cloud for remote monitoring, updates, and data analytics.</p>
-            </div>
-            
-            {/* Feature 4 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">Modular Systems</h3>
-              <p className="text-blue-200">Easily reconfigure your production line with plug-and-play modularity for different production needs.</p>
-            </div>
-            
-            {/* Feature 5 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">Adaptive Learning</h3>
-              <p className="text-blue-200">Systems that learn from experience, continuously improving performance and adapting to changing conditions.</p>
-            </div>
-            
-            {/* Feature 6 */}
-            <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-blue-900/30 hover:border-blue-500/50 transition-all group">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600/40 transition-colors">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">Advanced Security</h3>
-              <p className="text-blue-200">Industry-leading security protocols to protect your automation systems and data from external threats.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Advanced Features section with animations */}
+      <AdvancedFeatures />
       
       {/* Call to action */}
       <section className="py-20 px-6 relative overflow-hidden">
