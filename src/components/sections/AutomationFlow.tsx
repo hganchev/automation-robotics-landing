@@ -6,14 +6,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 // Register plugins outside component but inside client-side check
 if (typeof window !== 'undefined') {
-  // Only register the plugin once
-  if (!gsap.plugins || !gsap.plugins.ScrollTrigger) {
-    gsap.registerPlugin(ScrollTrigger);
-  }
-  
-  // Disable smooth scroll (which can interfere with ScrollTrigger)
-  // Uncomment if needed
-  // gsap.config({ nullTargetWarn: false });
+  // Safely register ScrollTrigger once
+  gsap.registerPlugin(ScrollTrigger);
 }
 
 // Component types
@@ -75,9 +69,7 @@ const AutomationFlow: React.FC = () => {
     if (isInitializedRef.current) return;
     
     // Make sure ScrollTrigger is registered
-    if (!gsap.plugins || !gsap.plugins.ScrollTrigger) {
-      gsap.registerPlugin(ScrollTrigger);
-    }
+    gsap.registerPlugin(ScrollTrigger);
     
     // Delay slightly to ensure DOM is fully ready
     const initTimer = setTimeout(() => {
